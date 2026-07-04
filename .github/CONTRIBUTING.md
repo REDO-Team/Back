@@ -20,17 +20,6 @@
     - `Test:` 테스트
     - `Chore:` 기타 설정
     - [타입]#이슈번호 작업 내용
-    - 예시:
-
-        ```
-        [Feat]#12 회원가입 API 추가
-        [Fix]#18 로그인 실패 시 예외 처리 수정
-        [Refactor]#21 유저 엔티티 필드명 정리
-        [Docs]#5 README 패키지 구조 문서화
-        [Test]#30 회원가입 서비스 테스트 추가
-        [Chore]#7 Gradle 의존성 추가
-        ```
-
 
 ### PR 규칙
 
@@ -38,7 +27,7 @@
 - Conflict 해결 책임자는 PR 작성자
 - PR에는 작업 내용, 변경 사항, 테스트 결과, 리뷰 포인트, 관련 이슈를 포함. (PR 템플릿 사용)
 - 코드 리뷰
-    - coderabbitai 사용, 자체 수정 및 검토 후 merge (리뷰어는 필요시 지정)
+    - coderabbitai 사용, 수정 및 검토 후 merge. (리뷰어는 필요시 지정)
 
 ### Issue 규칙
 
@@ -53,11 +42,11 @@
     - 클래스: PascalCase, 변수/메서드: camelCase, 상수: UPPER_SNAKE_CASE
     - Entity를 API 응답으로 직접 반환 X
 - API 응답 형식
-    - UMC식 공통 응답 사용
+    - 공통 응답 사용
         - isSuccess, code, message, result, errorDetail 형태로 성공/실패 응답을 통일.
 - 예외 처리 구조
-    - UMC식 예외 처리 사용
-        - BaseException + ErrorCode + GlobalException + CustomException 형태로 통일
+    - 예외 처리 사용
+        - BaseException + ErrorCode + GlobalException + CustomException 형태로 통일.
 
 ### API 명세
 
