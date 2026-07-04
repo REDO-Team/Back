@@ -1,4 +1,10 @@
 package com.redo.global.apiPayload.code;
 
-public interface BaseSuccessCode {
+import org.springframework.http.HttpStatus;
+
+public interface BaseSuccessCode extends BaseCode{
+
+    HttpStatus getHttpStatus();
+    SuccessReason getReason();
+
 }
