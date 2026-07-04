@@ -42,7 +42,7 @@
 
 ### Issue 규칙
 
-- Issue 제목 및 라벨은 [Feat], [Fix], [Refactor], [Docs], [Chore] 형식
+- Issue 제목 및 라벨은 이슈 템플릿에서 정의한 Prefix([Feat], [Bug], [Maintenance] 등)를 기준으로 사용합니다.
     - 이슈 생성 기준: 기능/버그/리팩토링
     - 이슈-브랜치-PR 연결 방식: branch 이름에 `#이슈번호` 포함
     - 이슈 템플릿 사용
