@@ -43,7 +43,7 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi allApi() {
         return GroupedOpenApi.builder()
-                .group("00. ALL")
+                .group("00-all")
                 .displayName("00. 전체 API")
                 .pathsToMatch("/**")
                 .build();
@@ -55,7 +55,7 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi userApi() {
         return GroupedOpenApi.builder()
-                .group("01. user")
+                .group("01-user")
                 .displayName("01. 회원 API")
                 .pathsToMatch(
                         "/api/auth/**",
@@ -72,7 +72,7 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi recycleGuideApi() {
         return GroupedOpenApi.builder()
-                .group("02. recycleGuide")
+                .group("02-recycle-guide")
                 .displayName("02. 분리수거 가이드 API")
                 .pathsToMatch(
                         "/api/recycle-categories/**",
@@ -88,7 +88,7 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi certificationApi() {
         return GroupedOpenApi.builder()
-                .group("03. certification")
+                .group("03-certification")
                 .displayName("03. 배출 인증 API")
                 .pathsToMatch(
                         "/api/certifications/**",
@@ -104,7 +104,7 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi rewardApi() {
         return GroupedOpenApi.builder()
-                .group("04. reward")
+                .group("04-reward")
                 .displayName("04. 리워드/포인트 API")
                 .pathsToMatch(
                         "/api/rewards/**",
@@ -122,7 +122,7 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi contributionApi() {
         return GroupedOpenApi.builder()
-                .group("05. contribution")
+                .group("05-contribution")
                 .displayName("05. 기여도 API")
                 .pathsToMatch(
                         "/api/contributions/**",
@@ -137,7 +137,7 @@ public class SwaggerConfig {
     @Bean
     public GroupedOpenApi communityApi() {
         return GroupedOpenApi.builder()
-                .group("06. community")
+                .group("06-community")
                 .displayName("06. 커뮤니티 API")
                 .pathsToMatch(
                         "/api/community/**",
