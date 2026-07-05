@@ -1,4 +1,8 @@
 package com.redo.global.apiPayload.code;
 
-public interface BaseErrorCode {
+import org.springframework.http.HttpStatus;
+
+public interface BaseErrorCode extends BaseCode {
+    HttpStatus getHttpStatus();
+    ErrorReason getReason();
 }
