@@ -1,11 +1,8 @@
 package com.redo.domain.community.entity;
 
-import com.redo.domain.community.enums.CommunityStatus;
 import com.redo.domain.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -48,9 +45,8 @@ public class CommunityComment {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private CommunityStatus status;
+    private String status;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
