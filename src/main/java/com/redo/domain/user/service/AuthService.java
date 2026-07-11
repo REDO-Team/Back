@@ -63,16 +63,29 @@ public class AuthService {
     ) {}
 
     @Transactional
-    public AuthResDTO.Reissue reissue(String refreshToken){
+    public TokenResult reissue(String refreshToken){
 
+        // 1. JWT 자체가 유효한지 확인
         if(!jwtUtil.validateToken(refreshToken)){
             throw new GeneralException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
         Long userId = jwtUtil.getUserIdFromToken(refreshToken);
 
+        // 2. Redis에 저장된 값과 실제로 일치하는지 확인 (보완사항)
+        String savedToken = redisTemplate.opsForValue().get("refresh:" + userId);
+        if (savedToken == null || !savedToken.equals(refreshToken)) {
+            throw new GeneralException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+        }
         String newAccessToken = jwtUtil.generateAccessToken(userId);
+        String newRefreshToken = jwtUtil.generateRefreshToken(userId);
 
-        return new AuthResDTO.Reissue(newAccessToken);
+        // 4. Redis 값 교체 (기존 토큰 자동 무효화)
+        redisTemplate.opsForValue().set(
+                "refresh:" + userId,
+                newRefreshToken,
+                Duration.ofMillis(jwtUtil.getRefreshTokenExpiration())
+        );
+        return new TokenResult(null, newAccessToken, newRefreshToken, jwtUtil.getRefreshTokenExpiration());
     }
 
     @Transactional

@@ -1,5 +1,7 @@
 package com.redo.domain.user.service;
 
+import com.redo.domain.user.exception.AuthErrorCode;
+import com.redo.global.apiPayload.exception.GeneralException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -17,6 +19,9 @@ public class SocialOAuthService {
                 .bodyToMono(GoogleResponse.class)
                 .block();
 
+        if (response == null || response.email() == null) {
+            throw new GeneralException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+        }
         return new SocialUserInfo(response.id(), response.email());
     }
 
@@ -43,6 +48,9 @@ public class SocialOAuthService {
                 .retrieve()
                 .bodyToMono(KakaoResponse.class)
                 .block();
+        if (response == null || response.kakao_account() == null || response.kakao_account().email() == null) {
+            throw new GeneralException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+        }
 
         return new SocialUserInfo(
                 String.valueOf(response.id()),      // Long → String 변환

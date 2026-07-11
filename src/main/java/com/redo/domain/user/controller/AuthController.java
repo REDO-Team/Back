@@ -2,10 +2,12 @@ package com.redo.domain.user.controller;
 
 import com.redo.domain.user.dto.AuthReqDTO;
 import com.redo.domain.user.dto.AuthResDTO;
+import com.redo.domain.user.exception.AuthErrorCode;
 import com.redo.domain.user.service.AuthService;
 import com.redo.domain.user.converter.AuthConverter;
 import com.redo.domain.user.exception.AuthSuccessCode;
 import com.redo.global.apiPayload.ApiResponse;
+import com.redo.global.apiPayload.exception.GeneralException;
 import com.redo.global.security.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -51,10 +53,24 @@ public class AuthController {
 
     @PostMapping("/reissue")
     public ApiResponse<AuthResDTO.Reissue> reissue(
-            @CookieValue("refreshToken") String refreshToken
+            @CookieValue("refreshToken") String refreshToken,
+            HttpServletResponse response
+
     ) {
-        AuthResDTO.Reissue result = authService.reissue(refreshToken);
-        return ApiResponse.onSuccess(AuthSuccessCode.TOKEN_REISSUE_SUCCESS, result);
+        AuthService.TokenResult result = authService.reissue(refreshToken);
+        // 새 refreshToken을 쿠키로 갱신
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", result.refreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(Duration.ofMillis(result.refreshTokenExpiration()))
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+
+        AuthResDTO.Reissue responseBody = new AuthResDTO.Reissue(result.accessToken());
+
+        return ApiResponse.onSuccess(AuthSuccessCode.TOKEN_REISSUE_SUCCESS, responseBody);
     }
 
     @PostMapping("/logout")
@@ -63,7 +79,13 @@ public class AuthController {
             HttpServletResponse response
     ){
         String accessToken = authHeader.replace("Bearer ", "");
-        Long userId = jwtUtil.getUserIdFromToken(accessToken);
+        Long userId ;
+        try {
+            userId = jwtUtil.getUserIdFromToken(accessToken);
+        } catch (Exception e) {
+            throw new GeneralException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+        }
+
         authService.logout(userId);
         // 쿠키 삭제 (Max-Age=0)
         ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
