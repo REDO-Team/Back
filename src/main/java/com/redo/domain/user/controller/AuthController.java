@@ -77,4 +77,58 @@ public class AuthController {
 
         return ApiResponse.onSuccess(AuthSuccessCode.LOGOUT_SUCCESS, null);
     }
+
+    @PostMapping("/login/google")
+    public ApiResponse<AuthResDTO.SocialLogin> loginGoogle(
+            @RequestBody @Valid AuthReqDTO.SocialLogin request,
+            HttpServletResponse response
+    ) {
+        AuthService.SocialLoginResult socialLoginResult = authService.socialLogin("GOOGLE", request.accessToken());
+        // 기존회원경우 ( 신규회원은 건너뜀)
+        if (!socialLoginResult.isNewUser()) {
+            ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", socialLoginResult.refreshToken())
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("Strict")
+                    .path("/")
+                    .maxAge(Duration.ofMillis(jwtUtil.getRefreshTokenExpiration()))
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+        }
+        AuthResDTO.SocialLogin responseBody = AuthConverter.toSocialLoginResponse(
+                socialLoginResult.user(),
+                socialLoginResult.isNewUser(),
+                socialLoginResult.accessToken(),
+                socialLoginResult.socialProvider(),
+                socialLoginResult.socialId()
+        );
+        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LOGIN_SUCCESS, responseBody);
+    }
+
+
+    @PostMapping("/login/kakao")
+    public ApiResponse<AuthResDTO.SocialLogin> loginKakao(
+            @RequestBody @Valid AuthReqDTO.SocialLogin request,
+            HttpServletResponse response
+    ) {
+        AuthService.SocialLoginResult socialLoginResult = authService.socialLogin("KAKAO", request.accessToken());
+        // 기존회원경우 ( 신규회원은 건너뜀)
+        if (!socialLoginResult.isNewUser()) {
+            ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", socialLoginResult.refreshToken())
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("Strict")
+                    .path("/")
+                    .maxAge(Duration.ofMillis(jwtUtil.getRefreshTokenExpiration()))
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+        }
+        AuthResDTO.SocialLogin responseBody = AuthConverter.toSocialLoginResponse(
+                socialLoginResult.user(),
+                socialLoginResult.isNewUser(),
+                socialLoginResult.accessToken(),
+                socialLoginResult.socialProvider(),
+                socialLoginResult.socialId()
+        );
+        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LOGIN_SUCCESS, responseBody);    }
 }

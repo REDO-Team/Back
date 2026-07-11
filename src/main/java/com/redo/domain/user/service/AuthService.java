@@ -2,6 +2,7 @@ package com.redo.domain.user.service;
 
 import com.redo.domain.user.dto.AuthResDTO;
 import com.redo.domain.user.entity.User;
+import com.redo.domain.user.enums.UserProvider;
 import com.redo.domain.user.exception.AuthErrorCode;
 import com.redo.domain.user.converter.AuthConverter;
 import com.redo.domain.user.enums.UserStatus;
@@ -24,6 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final StringRedisTemplate redisTemplate;
+    private final SocialOAuthService socialOAuthService;
 
 
     @Transactional
@@ -77,4 +79,49 @@ public class AuthService {
     public void logout(Long userId) {
         redisTemplate.delete("refresh:" + userId);
     }
+
+    @Transactional
+    public SocialLoginResult socialLogin(String provider, String socialAccessToken) {
+
+        // 1. 구글/카카오에 물어봐서 사용자 정보 받기
+        SocialOAuthService.SocialUserInfo userInfo;
+        if (provider.equals("GOOGLE")) {
+            userInfo = socialOAuthService.getGoogleUserInfo(socialAccessToken);
+        } else if (provider.equals("KAKAO")) {
+            userInfo = socialOAuthService.getKakaoUserInfo(socialAccessToken);
+        } else {
+            throw new GeneralException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+        }
+
+        // 2. DB에서 기존 회원인지 확인
+        UserProvider userProvider = UserProvider.valueOf(provider);
+        return userRepository.findByProviderAndProviderUserId(userProvider, userInfo.socialId())
+                .map(user -> {
+                    // 3-1. 기존 회원이면: 토큰 발급
+                    String accessToken = jwtUtil.generateAccessToken(user.getId());
+                    String refreshToken = jwtUtil.generateRefreshToken(user.getId());
+
+                    redisTemplate.opsForValue().set(
+                            "refresh:" + user.getId(),
+                            refreshToken,
+                            Duration.ofMillis(jwtUtil.getRefreshTokenExpiration())
+                    );
+
+                    return new SocialLoginResult(user, false, accessToken, refreshToken, null, null);
+                })
+                .orElseGet(() ->
+                        // 3-2. 신규 회원이면: 토큰 없이 socialId만 반환
+                        new SocialLoginResult(null, true, null, null, provider, userInfo.socialId())
+                );
+    }
+
+    // Service ↔ Controller 사이 내부용 객체
+    public record SocialLoginResult(
+            User user,
+            Boolean isNewUser,
+            String accessToken,
+            String refreshToken,
+            String socialProvider,
+            String socialId
+    ) {}
 }
