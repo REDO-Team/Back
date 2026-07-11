@@ -31,4 +31,11 @@ public class UserWithdrawal {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public static UserWithdrawal create(User user, UserWithdrawalReason reason) {
+        UserWithdrawal withdrawal = new UserWithdrawal();
+        withdrawal.user = user;
+        withdrawal.reason = reason;
+        return withdrawal;
+    } // 나중에 user와 reason이 설정된 신규 탈퇴 이력을 만들 수 없으므로 메서드 구현.
 }
