@@ -61,4 +61,8 @@ public class User {
 
     @Column(name = "withdrawn_at")
     private LocalDateTime withdrawnAt;
+
+    public void addPoint(Integer amount) {
+        this.totalPoints += amount;
+    }
 }
