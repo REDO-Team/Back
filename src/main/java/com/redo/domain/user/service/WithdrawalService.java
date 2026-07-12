@@ -37,31 +37,32 @@ public class WithdrawalService {
         }
         return WithdrawalConverter.toReasonList(reasons);
     }
-    // 탈퇴 처리
-    @Transactional
+    // 회원 탈퇴 처리
     public void withdraw(Long userId, Long reasonId) {
+        processWithdrawal(userId, reasonId);  // DB 작업만 트랜잭션으로
 
-        // 1) User 조회 ( 기본제공 메서드 findById 사용)
+        // Redis 삭제는 트랜잭션 밖에서 (실패해도 DB 작업엔 영향 없음)
+        try {
+            redisTemplate.delete("refresh:" + userId);
+        } catch (Exception e) {
+            // Redis 삭제 실패해도, 로그만 남기고 넘어감 (탈퇴 처리 자체는 이미 성공했으니까)
+        }
+    }
+
+    @Transactional
+    public void processWithdrawal(Long userId, Long reasonId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.NOT_FOUND));
 
-        // 2) 이미 탈퇴한 계정인지 확인
         if (user.getStatus() == UserStatus.WITHDRAWN) {
             throw new GeneralException(WithdrawalErrorCode.ALREADY_WITHDRAWN_ACCOUNT);
         }
 
-        // 3) 탈퇴 사유 조회
-        UserWithdrawalReason reason = userWithdrawalReasonRepository.findById(reasonId)
+        UserWithdrawalReason reason = userWithdrawalReasonRepository.findByIdAndIsActiveTrue(reasonId)
                 .orElseThrow(() -> new GeneralException(WithdrawalErrorCode.WITHDRAWAL_REASON_NOT_FOUND));
 
-        // 4) User 상태 변경
         user.withdraw();
-
-        // 5) 탈퇴 이력 생성 + 저장
         UserWithdrawal withdrawal = UserWithdrawal.create(user, reason);
         userWithdrawalRepository.save(withdrawal);
-
-        // 6) Redis에서 refreshToken 삭제
-        redisTemplate.delete("refresh:" + userId);
     }
 }
