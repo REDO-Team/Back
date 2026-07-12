@@ -13,6 +13,7 @@ import com.redo.domain.user.repository.UserWithdrawalRepository;
 import com.redo.global.apiPayload.code.GeneralErrorCode;
 import com.redo.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,6 +64,10 @@ public class WithdrawalService {
 
         user.withdraw();
         UserWithdrawal withdrawal = UserWithdrawal.create(user, reason);
-        userWithdrawalRepository.save(withdrawal);
+        try{
+            userWithdrawalRepository.save(withdrawal);
+        }catch (DataIntegrityViolationException e){
+            throw new GeneralException(WithdrawalErrorCode.ALREADY_WITHDRAWN_ACCOUNT);
+        }
     }
 }
