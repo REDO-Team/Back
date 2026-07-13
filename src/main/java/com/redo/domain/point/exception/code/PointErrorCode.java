@@ -1,4 +1,4 @@
-package com.redo.domain.point.exception;
+package com.redo.domain.point.exception.code;
 
 import com.redo.global.apiPayload.code.BaseErrorCode;
 import com.redo.global.apiPayload.code.ErrorReason;
@@ -24,7 +24,11 @@ public enum PointErrorCode implements BaseErrorCode {
 
     POINT_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST,
             "POINT_400_004",
-            "보유 포인트 한도를 초과할 수 없습니다.")
+            "보유 포인트 한도를 초과할 수 없습니다."),
+
+    INVALID_PAGE_REQUEST(HttpStatus.BAD_REQUEST,
+            "POINT_400_005",
+            "페이지 요청 값이 올바르지 않습니다.")
     ;
 
     private final HttpStatus httpStatus;

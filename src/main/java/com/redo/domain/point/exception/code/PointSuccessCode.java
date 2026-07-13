@@ -1,4 +1,4 @@
-package com.redo.domain.point.exception;
+package com.redo.domain.point.exception.code;
 
 import com.redo.global.apiPayload.code.BaseSuccessCode;
 import com.redo.global.apiPayload.code.SuccessReason;
