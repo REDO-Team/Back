@@ -61,7 +61,14 @@ public class User {
 
     @Column(name = "withdrawn_at")
     private LocalDateTime withdrawnAt;
-
+  
+    // 탈퇴시 User상태를 바꾸는 메서드
+    public void withdraw() {
+        this.status = UserStatus.WITHDRAWN;
+        this.withdrawnAt = LocalDateTime.now();
+    }
+  
+    // 포인트 적립 메서드
     public void addPoint(Integer amount) {
         this.totalPoints += amount;
     }
