@@ -28,6 +28,12 @@ public class RewardProduct extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "usage_guide", columnDefinition = "TEXT")
+    private String usageGuide;
+
+    @Column(name = "validity_days")
+    private Integer validityDays;
+
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
