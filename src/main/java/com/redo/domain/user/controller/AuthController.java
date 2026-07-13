@@ -152,5 +152,31 @@ public class AuthController {
                 socialLoginResult.socialProvider(),
                 socialLoginResult.socialId()
         );
-        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LOGIN_SUCCESS, responseBody);    }
+        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LOGIN_SUCCESS, responseBody);
+    }
+
+    @GetMapping("/login-id/check")
+    public ApiResponse<AuthResDTO.LoginIdCheck> checkLoginId(
+            @RequestParam String loginId
+    ) {
+        AuthResDTO.LoginIdCheck result = authService.checkLoginId(loginId);
+        return ApiResponse.onSuccess(AuthSuccessCode.CHECK_LOGIN_ID_SUCCESS, result);
+    }
+
+    @PostMapping("/email/verify-request")
+    public ApiResponse<Void> sendVerificationEmail(
+            @RequestBody @Valid AuthReqDTO.EmailVerifyRequest request
+    ) {
+        authService.sendVerificationEmail(request.email());
+        return ApiResponse.onSuccess(AuthSuccessCode.EMAIL_VERIFY_REQUEST_SUCCESS, null);
+    }
+
+
+    @PostMapping("/email/verify-confirm")
+    public ApiResponse<Void> confirmVerificationCode(
+            @RequestBody @Valid AuthReqDTO.EmailVerifyConfirm request
+    ) {
+        authService.confirmVerificationCode(request.email(), request.code());
+        return ApiResponse.onSuccess(AuthSuccessCode.EMAIL_VERIFY_CONFIRM_SUCCESS, null);
+    }
 }

@@ -14,7 +14,13 @@ public enum AuthErrorCode implements BaseErrorCode {
     WITHDRAWN_ACCOUNT(HttpStatus.FORBIDDEN, "AUTH_403_002", "탈퇴한 계정입니다."),
     INVALID_SOCIAL_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_401_003", "유효하지 않은 소셜 인증 토큰입니다."),
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_401_004", "유효하지 않거나 만료된 Refresh Token입니다. 다시 로그인해주세요."),
-    INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_401_005", "유효하지 않은 Access Token입니다.");
+    INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_401_005", "유효하지 않은 Access Token입니다."),
+
+    INVALID_EMAIL_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_001", "올바른 이메일 형식이 아닙니다."),
+    DUPLICATE_EMAIL(HttpStatus.CONFLICT, "AUTH_409_001", "이미 가입된 이메일입니다."),
+    INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "AUTH_400_002", "인증번호가 일치하지 않습니다."),
+    VERIFICATION_CODE_EXPIRED(HttpStatus.BAD_REQUEST, "AUTH_400_003", "인증번호가 만료되었습니다. 다시 요청해주세요."),
+    VERIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_404_001", "인증 요청 내역이 없습니다.");
 
 
     private final HttpStatus httpStatus;
