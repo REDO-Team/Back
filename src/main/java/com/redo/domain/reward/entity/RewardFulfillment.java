@@ -21,7 +21,7 @@ public class RewardFulfillment extends BaseEntity {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reward_redemption_id", nullable = false)
+    @JoinColumn(name = "reward_redemption_id", nullable = false, unique = true)
     private RewardRedemption rewardRedemption;
 
     @Enumerated(EnumType.STRING)

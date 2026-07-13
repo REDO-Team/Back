@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import com.redo.global.apiPayload.code.BaseErrorCode;
 import com.redo.global.apiPayload.code.BaseSuccessCode;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -15,6 +16,7 @@ import lombok.Getter;
 @JsonPropertyOrder({"isSuccess", "code", "message", "result", "errorDetail"})
 public class ApiResponse<T> {
 
+    @Getter(AccessLevel.NONE)
     @JsonProperty("isSuccess")
     private final boolean isSuccess;
 
