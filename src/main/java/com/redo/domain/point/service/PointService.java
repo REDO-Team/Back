@@ -58,13 +58,13 @@ public class PointService {
     public void earnPoint(Long userId, Long certificationId, Integer amount, String idempotencyKey) {
         validateEarnPoint(amount, idempotencyKey);
 
+        User user = getUserForUpdate(userId);
+
         if (pointTransactionRepository.existsByIdempotencyKey(idempotencyKey)) {
             return;
         }
 
-        User user = getUser(userId);
-
-        user.addPoint(amount);
+        validatePointLimit(user, amount);
 
         PointTransaction transaction = PointTransaction.builder()
                 .user(user)
@@ -75,6 +75,13 @@ public class PointService {
                 .build();
 
         pointTransactionRepository.save(transaction);
+        user.addPoint(amount);
+    }
+
+    private void validatePointLimit(User user, Integer amount) {
+        if (user.getTotalPoints() > Integer.MAX_VALUE - amount) {
+            throw new GeneralException(PointErrorCode.POINT_LIMIT_EXCEEDED);
+        }
     }
 
     private void validateEarnPoint(Integer amount, String idempotencyKey) {
@@ -89,6 +96,11 @@ public class PointService {
 
     private User getUser(Long userId) {
         return userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorCode.USER_NOT_FOUND));
+    }
+
+    private User getUserForUpdate(Long userId) {
+        return userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.USER_NOT_FOUND));
     }
 }

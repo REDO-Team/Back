@@ -20,7 +20,12 @@ public enum PointErrorCode implements BaseErrorCode {
 
     INSUFFICIENT_POINT(HttpStatus.BAD_REQUEST,
             "POINT_400_003",
-            "보유 포인트가 부족합니다.");
+            "보유 포인트가 부족합니다."),
+
+    POINT_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST,
+            "POINT_400_004",
+            "보유 포인트 한도를 초과할 수 없습니다.")
+    ;
 
     private final HttpStatus httpStatus;
     private final String code;
