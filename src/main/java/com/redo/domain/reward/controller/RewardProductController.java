@@ -39,7 +39,14 @@ public class RewardProductController {
     ) {
         validatePageRequest(page, size);
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        Sort.Order.desc("createdAt"),
+                        Sort.Order.desc("id")
+                )
+        );
 
         return ApiResponse.onSuccess(
                 RewardSuccessCode.GET_REWARD_PRODUCTS_SUCCESS,
