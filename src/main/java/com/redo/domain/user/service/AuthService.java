@@ -47,6 +47,7 @@
 
             String failKey = "login-fail:" + loginId;
 
+            // 이미 5번 이상 틀렸는지 확인 (증가 없이 조회만)
             String failCountStr = redisTemplate.opsForValue().get(failKey);
             if (failCountStr != null && Integer.parseInt(failCountStr) >= 5) {
                 throw new GeneralException(AuthErrorCode.LOGIN_ATTEMPT_EXCEEDED);
@@ -57,8 +58,11 @@
                     .orElseThrow(() -> new GeneralException(AuthErrorCode.INVALID_LOGIN_ID_OR_PASSWORD));
             //비번 검증 ( 원본 비밀번호와 암호화된 비밀번호)
             if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-                redisTemplate.opsForValue().increment(failKey);
-                redisTemplate.expire(failKey, Duration.ofMinutes(5));
+                Long failCount = redisTemplate.opsForValue().increment(failKey);
+                if (failCount != null && failCount == 1L) {
+                    // 처음 실패한 거면, TTL을 새로 설정 (기존에 없던 키니까)
+                    redisTemplate.expire(failKey, Duration.ofMinutes(5));
+                }
                 throw new GeneralException(AuthErrorCode.INVALID_LOGIN_ID_OR_PASSWORD);
             }
             //탈퇴한 계정인지 확인
@@ -227,8 +231,10 @@
 
             // 3) 인증번호 일치 확인
             if (!verification.getVerificationCode().equals(code)) {
-                redisTemplate.opsForValue().increment(failKey);
-                redisTemplate.expire(failKey, Duration.ofMinutes(5));
+                Long failCount = redisTemplate.opsForValue().increment(failKey);
+                if (failCount != null && failCount == 1L) {
+                    redisTemplate.expire(failKey, Duration.ofMinutes(5));
+                }
                 throw new GeneralException(AuthErrorCode.INVALID_VERIFICATION_CODE);
             }
 

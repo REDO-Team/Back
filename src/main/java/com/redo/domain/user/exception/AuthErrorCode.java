@@ -29,9 +29,7 @@ public enum AuthErrorCode implements BaseErrorCode {
 
     VERIFICATION_ATTEMPT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "AUTH_429_001", "인증 시도 횟수를 초과했습니다. 다시 요청해주세요."),
     EMAIL_REQUEST_TOO_FREQUENT(HttpStatus.TOO_MANY_REQUESTS, "AUTH_429_002", "잠시 후 다시 시도해주세요."),
-    LOGIN_ATTEMPT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "AUTH_429_003", "로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요."),
-
-    INVALID_LOGIN_ID_FORMAT(HttpStatus.BAD_REQUEST, "AUTH_400_006", "올바른 아이디 형식이 아닙니다.");
+    LOGIN_ATTEMPT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "AUTH_429_003", "로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요.");
 
 
     private final HttpStatus httpStatus;

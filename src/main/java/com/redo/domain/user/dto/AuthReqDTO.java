@@ -46,8 +46,10 @@ public class AuthReqDTO {
             @Pattern(
                     regexp = "^[a-zA-Z0-9]{6,}$",
                     message = "올바른 아이디 형식이 아닙니다."
-            )            String loginId,
+            )
+            String loginId,
 
+            @Email
             String email,
 
             @Pattern(
