@@ -9,4 +9,8 @@ public class ProfileResDTO {
             Integer totalPoint
     ) {}
 
+    public record CreateProfile(
+            Long userId
+    ) {}
+
 }

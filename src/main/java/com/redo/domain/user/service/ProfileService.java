@@ -1,6 +1,7 @@
 package com.redo.domain.user.service;
 
 import com.redo.domain.user.converter.ProfileConverter;
+import com.redo.domain.user.dto.ProfileReqDTO;
 import com.redo.domain.user.dto.ProfileResDTO;
 import com.redo.domain.user.entity.User;
 import com.redo.domain.user.entity.UserProfile;
@@ -40,6 +41,27 @@ public class ProfileService {
                 .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
 
         profile.updateNickname(nickname);
+    }
+
+    @Transactional
+    public ProfileResDTO.CreateProfile createProfile(Long userId, ProfileReqDTO.CreateProfile request) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
+
+        if(userProfileRepository.findByUserId(userId).isPresent()){
+            throw new GeneralException(ProfileErrorCode.PROFILE_ALREADY_EXISTS);
+        }
+
+        if(userProfileRepository.findByNickname(request.nickname()).isPresent()){
+            throw new GeneralException(ProfileErrorCode.DUPLICATE_NICKNAME);
+        }
+        UserProfile userProfile = UserProfile.create(user, request.nickname(), request.characterCode(),
+                request.gender(), request.birthDate());
+
+        userProfileRepository.save(userProfile);
+
+        return new ProfileResDTO.CreateProfile(user.getId());
     }
 
 }

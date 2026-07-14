@@ -57,4 +57,14 @@ public class UserProfile {
     public void updateNickname(String nickname) {
         this.nickname = nickname;
     }
+
+    public static UserProfile create(User user, String nickname, String characterCode, Gender gender, LocalDate birthDate) {
+        UserProfile profile = new UserProfile();
+        profile.user = user;
+        profile.nickname = nickname;
+        profile.characterCode = characterCode;
+        profile.gender = gender;
+        profile.birthDate = birthDate;
+        return profile;
+    }
 }

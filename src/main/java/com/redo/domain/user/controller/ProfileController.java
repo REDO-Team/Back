@@ -52,4 +52,22 @@ public class ProfileController {
 
         return ApiResponse.onSuccess(ProfileSuccessCode.UPDATE_NICKNAME_SUCCESS, null);
     }
+
+    @PostMapping("/me/profile")
+    public ApiResponse<ProfileResDTO.CreateProfile> createProfile(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody @Valid ProfileReqDTO.CreateProfile request
+    ) {
+        String accessToken = authHeader.replace("Bearer ", "");
+        Long userId;
+        try {
+            userId = jwtUtil.getUserIdFromToken(accessToken);
+        } catch (Exception e) {
+            throw new GeneralException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+        }
+
+        ProfileResDTO.CreateProfile responseBody = profileService.createProfile(userId, request);
+
+        return ApiResponse.onSuccess(ProfileSuccessCode.CREATE_PROFILE_SUCCESS, responseBody);
+    }
 }
