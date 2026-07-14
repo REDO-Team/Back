@@ -5,7 +5,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
-import java.util.Random;
+import java.security.SecureRandom;
+
 
 @Service
 @RequiredArgsConstructor
@@ -15,7 +16,7 @@ public class EmailService {
 
     // 6자리 랜덤 인증번호 생성
     public String generateVerificationCode() {
-        Random random = new Random();
+        SecureRandom random = new SecureRandom();
         int code = random.nextInt(900000) + 100000;  // 100000~999999 사이 숫자
         return String.valueOf(code);
     }

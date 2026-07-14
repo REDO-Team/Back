@@ -9,4 +9,5 @@ public interface UserEmailVerificationRepository extends JpaRepository<UserEmail
 
     Optional<UserEmailVerification> findTopByEmailOrderByCreatedAtDesc(String email);
 
+    Optional<UserEmailVerification> findTopByEmailAndVerifiedAtIsNotNullOrderByCreatedAtDesc(String email);
 }

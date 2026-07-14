@@ -164,6 +164,13 @@
         @Transactional
         public void sendVerificationEmail(String email) {
 
+            String cooldownKey = "email-cooldown:" + email;
+
+            // 0) 쿨다운 확인 (1분 이내 재요청 방지)
+            if (redisTemplate.hasKey(cooldownKey)) {
+                throw new GeneralException(AuthErrorCode.EMAIL_REQUEST_TOO_FREQUENT);
+            }
+
             // 1) 이미 가입된 이메일인지 확인
             userRepository.findByEmail(email).ifPresent(user -> {
                 throw new GeneralException(AuthErrorCode.DUPLICATE_EMAIL);
@@ -172,17 +179,28 @@
             // 2) 인증번호 생성
             String code = emailService.generateVerificationCode();
 
-            // 3) 이메일 발송
-            emailService.sendVerificationEmail(email, code);
-
-            // 4) DB에 저장
+            // 3) DB에 저장
             UserEmailVerification verification = UserEmailVerification.create(email, code);
             userEmailVerificationRepository.save(verification);
+
+            // 4) 이메일 발송
+            emailService.sendVerificationEmail(email, code);
+
+            // 5) 쿨다운 설정 (1분)
+            redisTemplate.opsForValue().set(cooldownKey, "1", Duration.ofMinutes(1));
         }
 
         // 인증번호 확인
         @Transactional
         public void confirmVerificationCode(String email, String code) {
+
+            String failKey = "verify-fail:" + email;
+
+            // 0) 이미 5번 이상 틀렸는지 확인
+            String failCountStr = redisTemplate.opsForValue().get(failKey);
+            if (failCountStr != null && Integer.parseInt(failCountStr) >= 5) {
+                throw new GeneralException(AuthErrorCode.VERIFICATION_ATTEMPT_EXCEEDED);
+            }
 
             // 1) 가장 최근 인증 기록 조회
             UserEmailVerification verification = userEmailVerificationRepository
@@ -196,10 +214,15 @@
 
             // 3) 인증번호 일치 확인
             if (!verification.getVerificationCode().equals(code)) {
+                redisTemplate.opsForValue().increment(failKey);
+                redisTemplate.expire(failKey, Duration.ofMinutes(5));
                 throw new GeneralException(AuthErrorCode.INVALID_VERIFICATION_CODE);
             }
 
-            // 4) 인증 완료 처리
+            // 4) 인증 성공 → 실패 카운터 삭제
+            redisTemplate.delete(failKey);
+
+            // 5) 인증 완료 처리
             verification.verify();
         }
 
@@ -249,13 +272,9 @@
             }
 
             // 2) 이메일 인증 완료 확인
-            UserEmailVerification verification = userEmailVerificationRepository
-                    .findTopByEmailOrderByCreatedAtDesc(request.email())
+            userEmailVerificationRepository
+                    .findTopByEmailAndVerifiedAtIsNotNullOrderByCreatedAtDesc(request.email())
                     .orElseThrow(() -> new GeneralException(AuthErrorCode.EMAIL_NOT_VERIFIED));
-
-            if (verification.getVerifiedAt() == null) {
-                throw new GeneralException(AuthErrorCode.EMAIL_NOT_VERIFIED);
-            }
 
             // 3) 비밀번호 암호화
             String passwordHash = passwordEncoder.encode(request.password());
@@ -271,7 +290,12 @@
         private User createSocialUser(AuthReqDTO.Signup request) {
 
             // 1) 이미 가입된 소셜 계정인지 확인
-            UserProvider provider = UserProvider.valueOf(request.socialProvider());
+            UserProvider provider;
+            try {
+                provider = UserProvider.valueOf(request.socialProvider());
+            } catch (IllegalArgumentException e) {
+                throw new GeneralException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+            }
 
             if (userRepository.findByProviderAndProviderUserId(provider, request.socialId()).isPresent()) {
                 throw new GeneralException(AuthErrorCode.DUPLICATE_SOCIAL_ACCOUNT);

@@ -35,7 +35,7 @@ public class UserEmailVerification {
     private LocalDateTime createdAt;
 
     @Column(name = "verification_code", length = 6)
-    private String verificationCode; // 인증번호 저장할 필드 추이
+    private String verificationCode; // 인증번호 저장할 필드 추가
 
     public static UserEmailVerification create(String email, String verificationCode) {
         UserEmailVerification verification = new UserEmailVerification();
