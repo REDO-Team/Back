@@ -17,7 +17,9 @@ public enum AuthSuccessCode implements BaseSuccessCode {
     CHECK_LOGIN_ID_SUCCESS(HttpStatus.OK, "AUTH_200_006", "아이디 중복 확인에 성공했습니다."),
 
     EMAIL_VERIFY_REQUEST_SUCCESS(HttpStatus.OK, "AUTH_200_007", "인증번호가 발송되었습니다."),
-    EMAIL_VERIFY_CONFIRM_SUCCESS(HttpStatus.OK, "AUTH_200_008", "이메일 인증이 완료되었습니다.");
+    EMAIL_VERIFY_CONFIRM_SUCCESS(HttpStatus.OK, "AUTH_200_008", "이메일 인증이 완료되었습니다."),
+
+    SIGNUP_SUCCESS(HttpStatus.CREATED, "AUTH_201_001", "회원가입에 성공했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

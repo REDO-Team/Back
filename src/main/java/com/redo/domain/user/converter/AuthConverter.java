@@ -23,10 +23,5 @@ public class AuthConverter {
                 socialId
         );
     }
-    public static AuthResDTO.Reissue toReissueResponse(String accessToken){
-        return new AuthResDTO.Reissue(accessToken);
-    }
-
-
 
 }

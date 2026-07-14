@@ -29,6 +29,12 @@ public class AuthResDTO {
     public record LoginIdCheck(
             Boolean isAvailable
     ){
+    }
+
+    public record Signup(
+        Long userId,
+        String accessToken
+    ) {
 
     }
 }

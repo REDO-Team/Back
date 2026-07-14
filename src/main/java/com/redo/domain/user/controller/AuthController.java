@@ -179,4 +179,25 @@ public class AuthController {
         authService.confirmVerificationCode(request.email(), request.code());
         return ApiResponse.onSuccess(AuthSuccessCode.EMAIL_VERIFY_CONFIRM_SUCCESS, null);
     }
+
+    @PostMapping("/signup")
+    public ApiResponse<AuthResDTO.Signup> signup(
+            @RequestBody @Valid AuthReqDTO.Signup request,
+            HttpServletResponse response
+    ) {
+        // 1) refreshToken 쿠키 설정
+        AuthService.TokenResult result = authService.signup(request);
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", result.refreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(Duration.ofMillis(result.refreshTokenExpiration()))
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+
+        AuthResDTO.Signup responseBody = new AuthResDTO.Signup(result.user().getId(), result.accessToken());
+
+        return ApiResponse.onSuccess(AuthSuccessCode.SIGNUP_SUCCESS, responseBody);
+    }
 }

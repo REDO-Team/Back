@@ -20,8 +20,12 @@ public enum AuthErrorCode implements BaseErrorCode {
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "AUTH_409_001", "이미 가입된 이메일입니다."),
     INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "AUTH_400_002", "인증번호가 일치하지 않습니다."),
     VERIFICATION_CODE_EXPIRED(HttpStatus.BAD_REQUEST, "AUTH_400_003", "인증번호가 만료되었습니다. 다시 요청해주세요."),
-    VERIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_404_001", "인증 요청 내역이 없습니다.");
+    VERIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_404_001", "인증 요청 내역이 없습니다."),
 
+    REQUIRED_TERMS_NOT_AGREED(HttpStatus.BAD_REQUEST, "AUTH_400_004", "필수 약관에 모두 동의해야 합니다."),
+    EMAIL_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "AUTH_400_005", "이메일 인증을 완료해주세요."),
+    DUPLICATE_LOGIN_ID(HttpStatus.CONFLICT, "AUTH_409_002", "이미 사용 중인 아이디입니다."),
+    DUPLICATE_SOCIAL_ACCOUNT(HttpStatus.CONFLICT, "AUTH_409_003", "이미 가입된 계정입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
