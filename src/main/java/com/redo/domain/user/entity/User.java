@@ -12,6 +12,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -27,7 +28,7 @@ public class User {
     @Column(name = "login_id", length = 50, unique = true, nullable = false)
     private String loginId;
 
-    @Column(name = "email", length = 255, unique = true, nullable = false)
+    @Column(name = "email", length = 255, unique = true)
     private String email;
 
     @Column(name = "password_hash", length = 255)
@@ -61,15 +62,41 @@ public class User {
 
     @Column(name = "withdrawn_at")
     private LocalDateTime withdrawnAt;
-  
+
     // 탈퇴시 User상태를 바꾸는 메서드
     public void withdraw() {
         this.status = UserStatus.WITHDRAWN;
         this.withdrawnAt = LocalDateTime.now();
     }
-  
+
     // 포인트 적립 메서드
     public void addPoint(Integer amount) {
         this.totalPoints += amount;
+    }
+
+    // 일반 가입 유저 객체 만드는 메서드
+    public static User createGeneral(String loginId, String email, String passwordHash) {
+        User user = new User();
+        user.loginId = loginId;
+        user.email = email;
+        user.passwordHash = passwordHash;
+        user.provider = UserProvider.LOCAL;
+        user.status = UserStatus.ACTIVE;
+        user.role = UserRole.USER;
+        user.totalPoints = 0;
+        return user;
+    }
+
+    // 소셜 가입 유저 객체 만드는 메서드
+    public static User createSocial(UserProvider provider, String providerUserId, String email) {
+        User user = new User();
+        user.loginId = "social_" + UUID.randomUUID().toString().substring(0, 8);
+        user.email = email;
+        user.provider = provider;
+        user.providerUserId = providerUserId;
+        user.status = UserStatus.ACTIVE;
+        user.role = UserRole.USER;
+        user.totalPoints = 0;
+        return user;
     }
 }

@@ -10,4 +10,5 @@ public interface TermRepository extends JpaRepository<Term, Long> {
     // 활성화된(is_active=true) 약관 목록 조회
     List<Term> findByIsActiveTrue();
 
+    List<Term> findByIsRequiredTrue();
 }

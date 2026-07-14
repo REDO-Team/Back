@@ -24,4 +24,17 @@ public class AuthResDTO {
             String accessToken
     ) {
     }
+
+    //로그인 중복 확인시 응답
+    public record LoginIdCheck(
+            Boolean isAvailable
+    ){
+    }
+
+    public record Signup(
+        Long userId,
+        String accessToken
+    ) {
+
+    }
 }
