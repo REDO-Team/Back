@@ -1,10 +1,7 @@
 package com.redo.domain.user.dto;
 
 import com.redo.domain.user.enums.SignupType;
-import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 
 import java.util.List;
 
@@ -46,8 +43,17 @@ public class AuthReqDTO {
             @NotNull
             SignupType signupType,
 
-            String loginId,
+            @Pattern(
+                    regexp = "^[a-zA-Z0-9]{6,}$",
+                    message = "올바른 아이디 형식이 아닙니다."
+            )            String loginId,
+
             String email,
+
+            @Pattern(
+                    regexp = "^(?=.*[a-zA-Z])(?=.*[0-9])[a-zA-Z0-9!@#$%^&*()_+\\-=]{8,16}$",
+                    message = "8~16자의 영문, 숫자를 조합해 주세요."
+            )
             String password,
 
             String socialProvider,     // 원래 enum값이지만 일반가입의 경우 null이므로 string으로 받고 필요시 valueOf.

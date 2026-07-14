@@ -44,17 +44,30 @@
 
         @Transactional
         public TokenResult login(String loginId, String password) {
+
+            String failKey = "login-fail:" + loginId;
+
+            String failCountStr = redisTemplate.opsForValue().get(failKey);
+            if (failCountStr != null && Integer.parseInt(failCountStr) >= 5) {
+                throw new GeneralException(AuthErrorCode.LOGIN_ATTEMPT_EXCEEDED);
+            }
+
             //id 로 유저찾기
             User user = userRepository.findByLoginId(loginId)
                     .orElseThrow(() -> new GeneralException(AuthErrorCode.INVALID_LOGIN_ID_OR_PASSWORD));
             //비번 검증 ( 원본 비밀번호와 암호화된 비밀번호)
             if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+                redisTemplate.opsForValue().increment(failKey);
+                redisTemplate.expire(failKey, Duration.ofMinutes(5));
                 throw new GeneralException(AuthErrorCode.INVALID_LOGIN_ID_OR_PASSWORD);
             }
             //탈퇴한 계정인지 확인
             if (user.getStatus() == UserStatus.WITHDRAWN) {
                 throw new GeneralException(AuthErrorCode.WITHDRAWN_ACCOUNT);
             }
+
+            redisTemplate.delete(failKey);
+
             // 토큰 발급
             String accessToken = jwtUtil.generateAccessToken(user.getId());
             String refreshToken = jwtUtil.generateRefreshToken(user.getId());
