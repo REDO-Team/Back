@@ -60,7 +60,9 @@
             if (!passwordEncoder.matches(password, user.getPasswordHash())) {
                 Long failCount = redisTemplate.opsForValue().increment(failKey);
                 if (failCount != null && failCount == 1L) {
-                    // 처음 실패한 거면, TTL을 새로 설정 (기존에 없던 키니까)
+                    redisTemplate.expire(failKey, Duration.ofMinutes(5));
+                } else if (failCount != null && failCount == 5L) {
+                    // 5번째(차단 시작 시점)에 TTL을 5분으로 다시 설정
                     redisTemplate.expire(failKey, Duration.ofMinutes(5));
                 }
                 throw new GeneralException(AuthErrorCode.INVALID_LOGIN_ID_OR_PASSWORD);
@@ -233,6 +235,8 @@
             if (!verification.getVerificationCode().equals(code)) {
                 Long failCount = redisTemplate.opsForValue().increment(failKey);
                 if (failCount != null && failCount == 1L) {
+                    redisTemplate.expire(failKey, Duration.ofMinutes(5));
+                } else if (failCount != null && failCount == 5L) {
                     redisTemplate.expire(failKey, Duration.ofMinutes(5));
                 }
                 throw new GeneralException(AuthErrorCode.INVALID_VERIFICATION_CODE);
