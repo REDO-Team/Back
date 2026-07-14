@@ -1,5 +1,6 @@
 package com.redo.domain.user.controller;
 
+import com.redo.domain.user.dto.ProfileReqDTO;
 import com.redo.domain.user.dto.ProfileResDTO;
 import com.redo.domain.user.exception.AuthErrorCode;
 import com.redo.domain.user.exception.ProfileSuccessCode;
@@ -7,11 +8,9 @@ import com.redo.domain.user.service.ProfileService;
 import com.redo.global.apiPayload.ApiResponse;
 import com.redo.global.apiPayload.exception.GeneralException;
 import com.redo.global.security.JwtUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
@@ -35,5 +34,22 @@ public class ProfileController {
         ProfileResDTO.ProfileInfo responseBody = profileService.getProfile(userId);
 
         return ApiResponse.onSuccess(ProfileSuccessCode.GET_PROFILE_SUCCESS, responseBody);
+    }
+
+    @PatchMapping("/me/profile/nickname")
+    public ApiResponse<Void> updateNickname(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody @Valid ProfileReqDTO.UpdateNickname request
+    ) {
+        String accessToken = authHeader.replace("Bearer ", "");
+        Long userId;
+        try{
+            userId = jwtUtil.getUserIdFromToken(accessToken);
+        }catch(Exception e){
+            throw new GeneralException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+        }
+        profileService.updateNickname(userId, request.nickname());
+
+        return ApiResponse.onSuccess(ProfileSuccessCode.UPDATE_NICKNAME_SUCCESS, null);
     }
 }

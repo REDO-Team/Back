@@ -8,6 +8,7 @@ import com.redo.domain.user.exception.ProfileErrorCode;
 import com.redo.domain.user.repository.UserProfileRepository;
 import com.redo.domain.user.repository.UserRepository;
 import com.redo.global.apiPayload.exception.GeneralException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,7 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
 
+
     public ProfileResDTO.ProfileInfo getProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
@@ -27,4 +29,17 @@ public class ProfileService {
 
         return ProfileConverter.toProfileInfo(user, profile);
     }
+
+
+    @Transactional
+    public void updateNickname(Long userId, String nickname) {
+        if(userProfileRepository.findByNickname(nickname).isPresent()){
+            throw new GeneralException(ProfileErrorCode.DUPLICATE_NICKNAME);
+        }
+        UserProfile profile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
+
+        profile.updateNickname(nickname);
+    }
+
 }
