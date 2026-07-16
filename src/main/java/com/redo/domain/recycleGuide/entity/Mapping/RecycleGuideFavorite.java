@@ -11,7 +11,9 @@ import lombok.*;
 })
 @Entity
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class RecycleGuideFavorite {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
