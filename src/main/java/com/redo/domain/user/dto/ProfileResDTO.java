@@ -13,8 +13,4 @@ public class ProfileResDTO {
             Long userId
     ) {}
 
-    public record ProfileImage(
-            String profileImageUrl
-    ) {}
-
 }

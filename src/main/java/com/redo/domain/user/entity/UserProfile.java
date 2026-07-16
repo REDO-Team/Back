@@ -27,7 +27,7 @@ public class UserProfile {
     @JoinColumn(name = "user_id", unique = true, nullable = false)
     private User user;
 
-    @Column(name = "nickname", length = 30, nullable = false)
+    @Column(name = "nickname", length = 30, nullable = false, unique = true)
     private String nickname;
 
     @Column(name = "profile_image_url", length = 500)
