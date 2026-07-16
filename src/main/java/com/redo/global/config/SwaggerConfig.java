@@ -108,6 +108,7 @@ public class SwaggerConfig {
                 .displayName("04. 리워드/포인트 API")
                 .pathsToMatch(
                         "/api/rewards/**",
+                        "/api/shipping-addresses/**",
                         "/api/reward-products/**",
                         "/api/product-categories/**",
                         "/api/points/**",

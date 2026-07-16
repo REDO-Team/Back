@@ -46,7 +46,8 @@ public class SecurityConfig {
                                 "/api/auth/reissue",
                                 "/api/terms/**",
                                 "/api/auth/login-id/check",
-                                "/api/auth/email/**"
+                                "/api/auth/email/**",
+                                "/api/recycle-categories"
                         ).permitAll()
                         .anyRequest().authenticated()
                 ).addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
