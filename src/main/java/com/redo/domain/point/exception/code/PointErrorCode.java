@@ -28,8 +28,7 @@ public enum PointErrorCode implements BaseErrorCode {
 
     INVALID_PAGE_REQUEST(HttpStatus.BAD_REQUEST,
             "POINT_400_005",
-            "페이지 요청 값이 올바르지 않습니다.")
-    ;
+            "페이지 요청 값이 올바르지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

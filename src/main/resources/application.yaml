@@ -39,6 +39,10 @@ jwt:
   access-token-expiration: 3600000
   refresh-token-expiration: 1209600000
 
+juso:
+  address-search-url: https://business.juso.go.kr/addrlink/addrLinkApi.do
+  confirmation-key: ${JUSO_API_KEY:}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
