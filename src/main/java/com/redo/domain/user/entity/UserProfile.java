@@ -67,4 +67,8 @@ public class UserProfile {
         profile.birthDate = birthDate;
         return profile;
     }
+
+    public void updateProfileImage(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
 }
