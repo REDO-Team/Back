@@ -27,6 +27,6 @@ public class RecycleGuide {
     private RecycleCategory recycleCategory;
 
     @OneToMany(mappedBy = "recycleGuide", cascade = CascadeType.ALL)
-    @OrderBy("stepNumber ASC") // 💡 5. 추가됨: DB에서 데이터를 꺼낼 때 항상 스텝 번호 오름차순으로 정렬
+    @OrderBy("stepNumber ASC")
     private List<RecycleGuideStep> guideSteps = new ArrayList<>();
 }
