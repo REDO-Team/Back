@@ -27,7 +27,7 @@ public class UserProfile {
     @JoinColumn(name = "user_id", unique = true, nullable = false)
     private User user;
 
-    @Column(name = "nickname", length = 30, nullable = false)
+    @Column(name = "nickname", length = 30, nullable = false, unique = true)
     private String nickname;
 
     @Column(name = "profile_image_url", length = 500)
@@ -53,4 +53,22 @@ public class UserProfile {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public static UserProfile create(User user, String nickname, String characterCode, Gender gender, LocalDate birthDate) {
+        UserProfile profile = new UserProfile();
+        profile.user = user;
+        profile.nickname = nickname;
+        profile.characterCode = characterCode;
+        profile.gender = gender;
+        profile.birthDate = birthDate;
+        return profile;
+    }
+
+    public void updateProfileImage(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
 }
