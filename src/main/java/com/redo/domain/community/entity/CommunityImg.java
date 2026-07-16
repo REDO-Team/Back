@@ -1,5 +1,6 @@
 package com.redo.domain.community.entity;
 
+import com.redo.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -15,15 +16,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "community_imgs")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-public class CommunityImg {
+public class CommunityImg extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,7 +37,4 @@ public class CommunityImg {
 
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
 }
