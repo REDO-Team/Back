@@ -12,6 +12,7 @@ import com.redo.domain.user.repository.UserRepository;
 import com.redo.global.apiPayload.code.GeneralErrorCode;
 import com.redo.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,27 +28,33 @@ public class RecycleGuideFavoriteService {
     @Transactional
     public RecycleGuideFavoriteResponseDTO.FavoriteResultDTO addFavorite(Long userId, Long guideId) {
 
-        // 1. 사용자 조회
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new GeneralException(GeneralErrorCode.NOT_FOUND, "해당 사용자를 찾을 수 없습니다."));
 
-        // 2. 가이드 조회
+
         RecycleGuide guide = recycleGuideRepository.findById(guideId)
                 .orElseThrow(() -> new GeneralException(RecycleGuideErrorCode.GUIDE_NOT_FOUND));
 
-        // 3. 중복 즐겨찾기 체크
+
         if (recycleGuideFavoriteRepository.existsByUserIdAndRecycleGuideId(userId, guideId)) {
             throw new GeneralException(RecycleGuideErrorCode.FAVORITE_ALREADY_EXISTS);
         }
 
-        // 4. 즐겨찾기 저장
+
         RecycleGuideFavorite favorite = RecycleGuideFavorite.builder()
                 .user(user)
                 .recycleGuide(guide)
                 .build();
 
-        RecycleGuideFavorite savedFavorite = recycleGuideFavoriteRepository.save(favorite);
 
-        return RecycleGuideFavoriteConverter.toFavoriteResultDTO(savedFavorite);
+        try {
+
+            RecycleGuideFavorite savedFavorite = recycleGuideFavoriteRepository.save(favorite);
+            return RecycleGuideFavoriteConverter.toFavoriteResultDTO(savedFavorite);
+
+        } catch (DataIntegrityViolationException e) {
+            throw new GeneralException(RecycleGuideErrorCode.FAVORITE_ALREADY_EXISTS);
+        }
     }
 }

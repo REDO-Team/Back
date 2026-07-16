@@ -7,11 +7,9 @@ import com.redo.global.apiPayload.code.GeneralSuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "가이드 즐겨찾기", description = "배출 가이드 즐겨찾기 API")
 @RestController
@@ -23,6 +21,7 @@ public class RecycleGuideFavoriteController {
 
     @Operation(summary = "가이드 즐겨찾기 추가", description = "특정 배출 가이드를 사용자의 즐겨찾기에 추가합니다.")
     @PostMapping("/{guideId}/favorites")
+    @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RecycleGuideFavoriteResponseDTO.FavoriteResultDTO> addFavorite(
             @AuthenticationPrincipal Long userId,
             @PathVariable Long guideId) {
