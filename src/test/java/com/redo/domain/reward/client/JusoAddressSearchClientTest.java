@@ -2,6 +2,7 @@ package com.redo.domain.reward.client;
 
 import com.redo.domain.reward.dto.res.ShippingAddressCandidateResponseDTO;
 import com.redo.domain.reward.dto.res.ShippingAddressSearchResponseDTO;
+import com.redo.domain.reward.exception.ShippingAddressException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -10,8 +11,19 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class JusoAddressSearchClientTest {
+
+    @Test
+    void constructorFailsFastWhenConfirmationKeyIsBlank() {
+        assertThatThrownBy(() -> new JusoAddressSearchClient(
+                WebClient.builder(),
+                "https://business.juso.go.kr/addrlink/addrLinkApi.do",
+                " ",
+                5_000
+        )).isInstanceOf(ShippingAddressException.class);
+    }
 
     @Test
     void searchMapsJusoResponseAndPagination() {
@@ -54,7 +66,8 @@ class JusoAddressSearchClientTest {
         JusoAddressSearchClient client = new JusoAddressSearchClient(
                 webClientBuilder,
                 "https://business.juso.go.kr/addrlink/addrLinkApi.do",
-                "test-confirmation-key"
+                "test-confirmation-key",
+                5_000
         );
 
         ShippingAddressSearchResponseDTO response = client.search("장제로159번길", 1, 20);
@@ -77,5 +90,40 @@ class JusoAddressSearchClientTest {
                         "테스트빌딩"
                 )
         );
+    }
+
+    @Test
+    void searchConvertsDecodingFailureToShippingAddressException() {
+        WebClient.Builder webClientBuilder = WebClient.builder()
+                .exchangeFunction(request -> Mono.just(
+                        ClientResponse.create(HttpStatus.OK)
+                                .header(HttpHeaders.CONTENT_TYPE, "application/json")
+                                .body("{invalid-json")
+                                .build()
+                ));
+        JusoAddressSearchClient client = new JusoAddressSearchClient(
+                webClientBuilder,
+                "https://business.juso.go.kr/addrlink/addrLinkApi.do",
+                "test-confirmation-key",
+                5_000
+        );
+
+        assertThatThrownBy(() -> client.search("장제로159번길", 1, 20))
+                .isInstanceOf(ShippingAddressException.class);
+    }
+
+    @Test
+    void searchConvertsTimeoutToShippingAddressException() {
+        WebClient.Builder webClientBuilder = WebClient.builder()
+                .exchangeFunction(request -> Mono.never());
+        JusoAddressSearchClient client = new JusoAddressSearchClient(
+                webClientBuilder,
+                "https://business.juso.go.kr/addrlink/addrLinkApi.do",
+                "test-confirmation-key",
+                10
+        );
+
+        assertThatThrownBy(() -> client.search("장제로159번길", 1, 20))
+                .isInstanceOf(ShippingAddressException.class);
     }
 }

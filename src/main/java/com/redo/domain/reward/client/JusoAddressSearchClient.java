@@ -8,10 +8,11 @@ import com.redo.domain.reward.exception.code.ShippingAddressErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientException;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Mono;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,20 +24,22 @@ public class JusoAddressSearchClient {
     private final WebClient webClient;
     private final String addressSearchUrl;
     private final String confirmationKey;
+    private final Duration responseTimeout;
 
     public JusoAddressSearchClient(
             WebClient.Builder webClientBuilder,
             @Value("${juso.address-search-url}") String addressSearchUrl,
-            @Value("${juso.confirmation-key:}") String confirmationKey
+            @Value("${juso.confirmation-key:}") String confirmationKey,
+            @Value("${juso.response-timeout-millis:5000}") long responseTimeoutMillis
     ) {
-        this.webClient = webClientBuilder.build();
         this.addressSearchUrl = addressSearchUrl;
         this.confirmationKey = confirmationKey;
+        this.responseTimeout = Duration.ofMillis(responseTimeoutMillis);
+        validateJusoConfig();
+        this.webClient = webClientBuilder.build();
     }
 
     public ShippingAddressSearchResponseDTO search(String keyword, int page, int size) {
-        validateJusoConfig();
-
         URI uri = UriComponentsBuilder.fromUriString(addressSearchUrl)
                 .queryParam("confmKey", confirmationKey)
                 .queryParam("currentPage", page)
@@ -47,23 +50,29 @@ public class JusoAddressSearchClient {
                 .encode()
                 .toUri();
 
-        try {
-            JsonNode response = webClient.get()
-                    .uri(uri)
-                    .retrieve()
-                    .bodyToMono(JsonNode.class)
-                    .block();
-
-            return parseSearchResponse(response, page, size);
-        } catch (WebClientException e) {
-            throw new ShippingAddressException(ShippingAddressErrorCode.ADDRESS_SEARCH_FAILED);
-        }
+        return webClient.get()
+                .uri(uri)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .timeout(responseTimeout)
+                .switchIfEmpty(Mono.error(addressSearchFailed()))
+                .map(response -> parseSearchResponse(response, page, size))
+                .onErrorMap(
+                        error -> !(error instanceof ShippingAddressException),
+                        error -> addressSearchFailed()
+                )
+                .block();
     }
 
     private void validateJusoConfig() {
-        if (confirmationKey == null || confirmationKey.isBlank()) {
-            throw new ShippingAddressException(ShippingAddressErrorCode.ADDRESS_SEARCH_FAILED);
+        if (confirmationKey == null || confirmationKey.isBlank()
+                || responseTimeout.isZero() || responseTimeout.isNegative()) {
+            throw addressSearchFailed();
         }
+    }
+
+    private ShippingAddressException addressSearchFailed() {
+        return new ShippingAddressException(ShippingAddressErrorCode.ADDRESS_SEARCH_FAILED);
     }
 
     private ShippingAddressSearchResponseDTO parseSearchResponse(

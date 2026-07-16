@@ -57,7 +57,7 @@ public class ShippingAddressService {
             Long userId,
             ShippingAddressCreateRequestDTO request
     ) {
-        User user = getUser(userId);
+        User user = getUserForUpdate(userId);
         boolean hasActiveAddress = shippingAddressRepository.existsByUserAndDeletedAtIsNull(user);
         boolean shouldBeDefault = !hasActiveAddress || Boolean.TRUE.equals(request.isDefault());
 
@@ -83,7 +83,7 @@ public class ShippingAddressService {
             Long shippingAddressId,
             ShippingAddressUpdateRequestDTO request
     ) {
-        User user = getUser(userId);
+        User user = getUserForUpdate(userId);
         ShippingAddress shippingAddress = getActiveShippingAddress(shippingAddressId, user);
         boolean shouldBeDefault = resolveDefaultStatus(shippingAddress, request);
 
@@ -107,13 +107,14 @@ public class ShippingAddressService {
     // 배송지 삭제 로직
     @Transactional
     public ShippingAddressDeleteResponseDTO deleteShippingAddress(Long userId, Long shippingAddressId) {
-        User user = getUser(userId);
+        User user = getUserForUpdate(userId);
         ShippingAddress shippingAddress = getActiveShippingAddress(shippingAddressId, user);
         boolean wasDefault = Boolean.TRUE.equals(shippingAddress.getIsDefault());
 
         shippingAddress.delete();
 
         if (wasDefault) {
+            shippingAddressRepository.flush();
             shippingAddressRepository.findFirstByUserAndDeletedAtIsNullOrderByUpdatedAtDescIdDesc(user)
                     .ifPresent(ShippingAddress::setDefault);
         }
@@ -139,6 +140,11 @@ public class ShippingAddressService {
 
     private User getUser(Long userId) {
         return userRepository.findById(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorCode.USER_NOT_FOUND));
+    }
+
+    private User getUserForUpdate(Long userId) {
+        return userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new GeneralException(UserErrorCode.USER_NOT_FOUND));
     }
 }
