@@ -40,3 +40,5 @@ out/
 application-secret.yml
 *.env
 .env
+.env.*
+!.env.example
