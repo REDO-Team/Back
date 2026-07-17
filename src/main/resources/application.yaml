@@ -49,3 +49,6 @@ springdoc:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
+
+app:
+  base-url: http://13.209.188.93:8080

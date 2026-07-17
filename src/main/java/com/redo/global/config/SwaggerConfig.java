@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.models.GroupedOpenApi;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -29,13 +30,18 @@ import org.springframework.context.annotation.Configuration;
 
 public class SwaggerConfig {
 
+    @Value("${app.base-url}")
+    private String baseUrl;
+
+
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .addServersItem(new Server()
-                        .url("http://localhost:8080") // 배포 완료 후 EC2 배포 주소로 변경 예정입니다.
-                        .description("Local Server"));
+                        .url(baseUrl)
+                        .description("Server"));
     }
+
 
     /**
      * 전체 API 그룹입니다.
