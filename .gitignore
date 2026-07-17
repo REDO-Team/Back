@@ -39,3 +39,4 @@ out/
 ### 민감정보 ###
 application-secret.yml
 *.env
+.env
