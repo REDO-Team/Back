@@ -2,6 +2,11 @@ spring:
   application:
     name: redo-back
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 55MB
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -43,6 +48,13 @@ juso:
   address-search-url: https://business.juso.go.kr/addrlink/addrLinkApi.do
   confirmation-key: ${JUSO_API_KEY:}
   response-timeout-millis: ${JUSO_RESPONSE_TIMEOUT_MILLIS:5000}
+
+aws:
+  s3:
+    bucket: ${S3_BUCKET}
+    region: ${AWS_REGION:ap-northeast-2}
+    max-file-size: 10MB
+    presigned-url-expiration: 10m
 
 springdoc:
   swagger-ui:

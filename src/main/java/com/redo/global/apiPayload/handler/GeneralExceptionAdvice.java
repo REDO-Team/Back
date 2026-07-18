@@ -4,11 +4,12 @@ import com.redo.global.apiPayload.ApiResponse;
 import com.redo.global.apiPayload.code.BaseErrorCode;
 import com.redo.global.apiPayload.code.GeneralErrorCode;
 import com.redo.global.apiPayload.exception.GeneralException;
+import com.redo.global.s3.exception.code.S3ErrorCode;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -72,7 +73,7 @@ public class GeneralExceptionAdvice {
                 .body(ApiResponse.onFailure(ec, detail));
     }
 
-    //타입 미스매치
+    // 타입 미스매치
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<?>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         BaseErrorCode ec = GeneralErrorCode.VALIDATION_ERROR;
@@ -82,7 +83,7 @@ public class GeneralExceptionAdvice {
                 .body(ApiResponse.onFailure(ec, List.of(detail)));
     }
 
-    //필수 RequestParam 누락
+    // 필수 RequestParam 누락
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponse<?>> handleMissingParam(MissingServletRequestParameterException ex) {
         BaseErrorCode ec = GeneralErrorCode.VALIDATION_ERROR;
@@ -92,7 +93,7 @@ public class GeneralExceptionAdvice {
                 .body(ApiResponse.onFailure(ec, List.of(detail)));
     }
 
-    //JSON 파싱 실패 / 요청 body가 깨졌을 때
+    // JSON 파싱 실패 / 요청 body가 깨졌을 때
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<?>> handleNotReadable(HttpMessageNotReadableException ex) {
         BaseErrorCode ec = GeneralErrorCode.BAD_REQUEST;
@@ -102,7 +103,7 @@ public class GeneralExceptionAdvice {
                 .body(ApiResponse.onFailure(ec, List.of("요청 본문(JSON)을 올바르게 작성해 주세요.")));
     }
 
-    //지원하지 않는 HTTP Method(405)
+    // 지원하지 않는 HTTP Method (405)
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<?>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
         BaseErrorCode ec = GeneralErrorCode.METHOD_NOT_ALLOWED;
@@ -112,7 +113,7 @@ public class GeneralExceptionAdvice {
                 .body(ApiResponse.onFailure(ec, List.of(detail)));
     }
 
-    //지원하지 않는 Content-Type(415)
+    // 지원하지 않는 Content-Type (415)
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ApiResponse<?>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex) {
         BaseErrorCode ec = GeneralErrorCode.UNSUPPORTED_MEDIA_TYPE;
@@ -120,6 +121,14 @@ public class GeneralExceptionAdvice {
         String detail = "지원하지 않는 Content-Type 입니다: " + ex.getContentType();
         return ResponseEntity.status(ec.getHttpStatus())
                 .body(ApiResponse.onFailure(ec, List.of(detail)));
+    }
+
+    // 이미지 파일 업로드 용량 초과 (413)
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<?>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        BaseErrorCode ec = S3ErrorCode.FILE_SIZE_EXCEEDED;
+        return ResponseEntity.status(ec.getHttpStatus())
+                .body(ApiResponse.onFailure(ec, ec.getMessage()));
     }
 
     // 나머지 전부 (500)
