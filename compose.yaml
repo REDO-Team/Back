@@ -2,7 +2,7 @@ services:
   app:
     build:
       context: .
-    image: redo-backend:local
+    image: ${BACKEND_IMAGE:-redo-backend:local}
     env_file:
       - .env
     environment:
