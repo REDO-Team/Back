@@ -56,4 +56,21 @@ public class Community extends BaseEntity {
 
     @Column(name = "like_count")
     private Integer likeCount;
+
+    // 소프트 삭제: 실제 삭제 대신 deletedAt 을 기록해 조회에서 제외한다.
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public void increaseLikeCount() {
+        this.likeCount = currentLikeCount() + 1;
+    }
+
+    public void decreaseLikeCount() {
+        this.likeCount = Math.max(0, currentLikeCount() - 1);
+    }
+
+    private int currentLikeCount() {
+        return likeCount == null ? 0 : likeCount;
+    }
 }
