@@ -27,4 +27,15 @@ public class RecycleGuideResponseDTO {
         private final Long guideId;
         private final String guideName;
     }
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    public static class GuideDetailDTO {
+        private final String name;
+        private final String imageUrl;
+        private final String tip;
+        private final String recycleCategory;
+        private final List<String> guideSteps;
+    }
 }
