@@ -1,0 +1,13 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  mail:
+    username: test
+    password: test
+
+jwt:
+  secret: test-only-jwt-secret-key-with-at-least-32-bytes
+
+juso:
+  confirmation-key: test-only-confirmation-key
