@@ -9,6 +9,8 @@ import com.redo.domain.reward.exception.code.RewardErrorCode;
 import com.redo.domain.reward.exception.code.RewardSuccessCode;
 import com.redo.domain.reward.service.RewardProductService;
 import com.redo.global.apiPayload.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/rewards/products")
+@Tag(name = "리워드 상품", description = "리워드 상품 목록 및 상세 조회 API")
 public class RewardProductController {
 
     private static final int MIN_PAGE = 0;
@@ -30,8 +33,8 @@ public class RewardProductController {
 
     private final RewardProductService rewardProductService;
 
-    // 상품 목록 조회 API
     @GetMapping
+    @Operation(summary = "리워드 상품 목록 조회", description = "판매 가능한 리워드 상품을 유형별로 조회합니다.")
     public ApiResponse<RewardProductPageResponseDTO> getRewardProducts(
             @RequestParam(required = false) RewardProductType rewardProductType,
             @RequestParam(defaultValue = "0") int page,
@@ -56,8 +59,8 @@ public class RewardProductController {
         );
     }
 
-    // 상품 상세 조회 API
     @GetMapping("/{rewardProductId}")
+    @Operation(summary = "리워드 상품 상세 조회", description = "판매 가능한 리워드 상품의 상세 정보를 조회합니다.")
     public ApiResponse<RewardProductDetailResponseDTO> getRewardProduct(
             @PathVariable Long rewardProductId
     ) {
