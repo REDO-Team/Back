@@ -20,7 +20,7 @@ public class RecycleGuide {
     private String imageUrl;
 
     @Column(columnDefinition = "TEXT")
-    private String caution;
+    private String tip;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
