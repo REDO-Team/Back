@@ -11,11 +11,15 @@ public record ShippingAddressCreateRequestDTO(
         ShippingAddressType addressType,
 
         @NotBlank(message = "받는 이를 입력해주세요.")
-        @Size(max = 50, message = "받는 이는 50자 이하로 입력해주세요.")
+        @Size(max = 10, message = "받는 이는 10자 이하로 입력해주세요.")
+        @Pattern(regexp = "^[가-힣a-zA-Z ]+$", message = "받는 이는 문자만 입력해주세요.")
         String receiverName,
 
         @NotBlank(message = "연락처를 입력해주세요.")
-        @Size(max = 30, message = "연락처는 30자 이하로 입력해주세요.")
+        @Pattern(
+                regexp = "^(\\d{11}|\\d{3}-\\d{4}-\\d{4})$",
+                message = "연락처는 숫자 11자리 또는 000-0000-0000 형식으로 입력해주세요."
+        )
         String phone,
 
         @NotBlank(message = "우편번호를 입력해주세요.")

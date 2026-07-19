@@ -8,6 +8,8 @@ import com.redo.domain.point.exception.code.PointErrorCode;
 import com.redo.domain.point.exception.code.PointSuccessCode;
 import com.redo.domain.point.service.PointService;
 import com.redo.global.apiPayload.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/rewards/points")
+@Tag(name = "포인트", description = "사용자 포인트 및 거래 내역 조회 API")
 public class PointController {
 
     private static final int MIN_PAGE = 0;
@@ -28,16 +31,16 @@ public class PointController {
 
     private final PointService pointService;
 
-    // 포인트 조회 API
     @GetMapping
+    @Operation(summary = "보유 포인트 조회", description = "로그인한 사용자의 보유 포인트와 이번 달 적립 포인트를 조회합니다.")
     public ApiResponse<PointBalanceResponseDTO> getMyPoint(
             @AuthenticationPrincipal Long userId
     ) {
         return ApiResponse.onSuccess(PointSuccessCode.GET_POINT_SUCCESS, pointService.getMyPoint(userId));
     }
 
-    // 포인트 거래 내역 조회 API
     @GetMapping("/transactions")
+    @Operation(summary = "포인트 거래 내역 조회", description = "로그인한 사용자의 포인트 적립 및 사용 내역을 최신순으로 조회합니다.")
     public ApiResponse<PointTransactionPageResponseDTO> getMyPointTransactions(
             @AuthenticationPrincipal Long userId,
             @RequestParam(defaultValue = "0") int page,
