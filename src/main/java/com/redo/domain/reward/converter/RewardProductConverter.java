@@ -11,19 +11,25 @@ public class RewardProductConverter {
     private RewardProductConverter() {
     }
 
-    public static RewardProductResponseDTO toRewardProductResponse(RewardProduct rewardProduct) {
+    public static RewardProductResponseDTO toRewardProductResponse(
+            RewardProduct rewardProduct,
+            String imageUrl
+    ) {
         return new RewardProductResponseDTO(
                 rewardProduct.getId(),
                 rewardProduct.getRewardProductType(),
                 rewardProduct.getName(),
-                rewardProduct.getImageUrl(),
+                imageUrl,
                 rewardProduct.getPricePoint(),
                 rewardProduct.getStockQuantity(),
                 rewardProduct.getStatus()
         );
     }
 
-    public static RewardProductDetailResponseDTO toRewardProductDetailResponse(RewardProduct rewardProduct) {
+    public static RewardProductDetailResponseDTO toRewardProductDetailResponse(
+            RewardProduct rewardProduct,
+            String imageUrl
+    ) {
         return new RewardProductDetailResponseDTO(
                 rewardProduct.getId(),
                 rewardProduct.getRewardProductType(),
@@ -31,7 +37,7 @@ public class RewardProductConverter {
                 rewardProduct.getDescription(),
                 rewardProduct.getUsageGuide(),
                 rewardProduct.getValidityDays(),
-                rewardProduct.getImageUrl(),
+                imageUrl,
                 rewardProduct.getPricePoint(),
                 rewardProduct.getStockQuantity(),
                 rewardProduct.getStatus()

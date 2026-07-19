@@ -34,8 +34,8 @@ public class RewardProduct extends BaseEntity {
     @Column(name = "validity_days")
     private Integer validityDays;
 
-    @Column(name = "image_url", length = 500)
-    private String imageUrl;
+    @Column(name = "image_key", nullable = false, length = 500)
+    private String imageKey;
 
     @Column(name = "price_point", nullable = false)
     private Integer pricePoint;
