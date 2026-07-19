@@ -8,7 +8,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "point_transactions")
+@Table(
+        name = "point_transactions",
+        indexes = @Index(
+                name = "idx_point_transactions_user_type_created_at",
+                columnList = "user_id, transaction_type, created_at"
+        )
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor

@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +32,7 @@ public class PointService {
     private static final int GENERAL_CERTIFICATION_POINT = 50;
     private static final int AFTER_SEARCH_CERTIFICATION_POINT = 100;
     private static final int DAILY_EARN_LIMIT = 3;
+    private static final ZoneId SEOUL_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final PointTransactionRepository pointTransactionRepository;
     private final UserRepository userRepository;
@@ -102,7 +104,7 @@ public class PointService {
     }
 
     private void validateDailyEarnLimit(User user) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(SEOUL_ZONE_ID);
         LocalDateTime startAt = today.atStartOfDay();
         LocalDateTime endAt = today.plusDays(1).atStartOfDay();
 
