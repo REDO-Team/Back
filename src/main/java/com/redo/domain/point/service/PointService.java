@@ -1,5 +1,6 @@
 package com.redo.domain.point.service;
 
+import com.redo.domain.certification.enums.CertificationSource;
 import com.redo.domain.point.converter.PointConverter;
 import com.redo.domain.point.dto.res.PointBalanceResponseDTO;
 import com.redo.domain.point.dto.res.PointTransactionResponseDTO;
@@ -18,13 +19,20 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PointService {
+
+    private static final int GENERAL_CERTIFICATION_POINT = 50;
+    private static final int AFTER_SEARCH_CERTIFICATION_POINT = 100;
+    private static final int DAILY_EARN_LIMIT = 3;
+    private static final ZoneId SEOUL_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final PointTransactionRepository pointTransactionRepository;
     private final UserRepository userRepository;
@@ -58,8 +66,14 @@ public class PointService {
 
     // 포인트 적립 로직 (인증 성공 시 내부에서 호출)
     @Transactional
-    public void earnPoint(Long userId, Long certificationId, Integer amount, String idempotencyKey) {
-        validateEarnPoint(amount, idempotencyKey);
+    public void earnPoint(
+            Long userId,
+            Long certificationId,
+            CertificationSource certificationSource,
+            String idempotencyKey
+    ) {
+        validateEarnPoint(certificationSource, idempotencyKey);
+        int amount = resolveEarnAmount(certificationSource);
 
         User user = getUserForUpdate(userId);
 
@@ -67,6 +81,7 @@ public class PointService {
             return;
         }
 
+        validateDailyEarnLimit(user);
         validatePointLimit(user, amount);
 
         PointTransaction transaction = PointTransaction.builder()
@@ -81,15 +96,40 @@ public class PointService {
         user.addPoint(amount);
     }
 
+    private int resolveEarnAmount(CertificationSource certificationSource) {
+        return switch (certificationSource) {
+            case GENERAL -> GENERAL_CERTIFICATION_POINT;
+            case AFTER_SEARCH -> AFTER_SEARCH_CERTIFICATION_POINT;
+        };
+    }
+
+    private void validateDailyEarnLimit(User user) {
+        LocalDate today = LocalDate.now(SEOUL_ZONE_ID);
+        LocalDateTime startAt = today.atStartOfDay();
+        LocalDateTime endAt = today.plusDays(1).atStartOfDay();
+
+        long dailyEarnCount = pointTransactionRepository
+                .countByUserAndTransactionTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                        user,
+                        PointTransactionType.EARN,
+                        startAt,
+                        endAt
+                );
+
+        if (dailyEarnCount >= DAILY_EARN_LIMIT) {
+            throw new PointException(PointErrorCode.DAILY_EARN_LIMIT_EXCEEDED);
+        }
+    }
+
     private void validatePointLimit(User user, Integer amount) {
         if (user.getTotalPoints() > Integer.MAX_VALUE - amount) {
             throw new PointException(PointErrorCode.POINT_LIMIT_EXCEEDED);
         }
     }
 
-    private void validateEarnPoint(Integer amount, String idempotencyKey) {
-        if (amount == null || amount <= 0) {
-            throw new PointException(PointErrorCode.INVALID_POINT_AMOUNT);
+    private void validateEarnPoint(CertificationSource certificationSource, String idempotencyKey) {
+        if (certificationSource == null) {
+            throw new PointException(PointErrorCode.INVALID_CERTIFICATION_SOURCE);
         }
 
         if (idempotencyKey == null || idempotencyKey.isBlank()) {

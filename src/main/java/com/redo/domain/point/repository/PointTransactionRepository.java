@@ -15,6 +15,13 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
 
     boolean existsByIdempotencyKey(String idempotencyKey);
 
+    long countByUserAndTransactionTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            User user,
+            PointTransactionType transactionType,
+            LocalDateTime startAt,
+            LocalDateTime endAt
+    );
+
     // 이번 달 적립 합계 쿼리
     @Query("""
         select coalesce(sum(p.amount), 0)

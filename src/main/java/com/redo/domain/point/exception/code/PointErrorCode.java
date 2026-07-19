@@ -28,7 +28,15 @@ public enum PointErrorCode implements BaseErrorCode {
 
     INVALID_PAGE_REQUEST(HttpStatus.BAD_REQUEST,
             "POINT_400_005",
-            "페이지 요청 값이 올바르지 않습니다.");
+            "페이지 요청 값이 올바르지 않습니다."),
+
+    INVALID_CERTIFICATION_SOURCE(HttpStatus.BAD_REQUEST,
+            "POINT_400_006",
+            "인증 경로가 올바르지 않습니다."),
+
+    DAILY_EARN_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST,
+            "POINT_400_007",
+            "하루 최대 3번까지 포인트를 적립할 수 있습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
