@@ -1,0 +1,58 @@
+package com.redo.domain.reward.converter;
+
+import com.redo.domain.reward.dto.res.RewardRedemptionHistoryPageResponseDTO;
+import com.redo.domain.reward.dto.res.RewardRedemptionHistoryResponseDTO;
+import com.redo.domain.reward.dto.res.RewardRedemptionResponseDTO;
+import com.redo.domain.reward.entity.RewardFulfillment;
+import com.redo.domain.reward.entity.RewardRedemption;
+import org.springframework.data.domain.Page;
+
+public class RewardRedemptionConverter {
+
+    private RewardRedemptionConverter() {
+    }
+
+    public static RewardRedemptionResponseDTO toRewardRedemptionResponse(
+            RewardRedemption redemption,
+            Integer remainingPoint
+    ) {
+        return new RewardRedemptionResponseDTO(
+                redemption.getId(),
+                redemption.getRewardProduct().getId(),
+                redemption.getProductName(),
+                redemption.getUsedPoint(),
+                remainingPoint,
+                redemption.getStatus()
+        );
+    }
+
+    public static RewardRedemptionHistoryResponseDTO toRewardRedemptionHistoryResponse(
+            RewardFulfillment fulfillment,
+            String productImageUrl
+    ) {
+        RewardRedemption redemption = fulfillment.getRewardRedemption();
+
+        return new RewardRedemptionHistoryResponseDTO(
+                redemption.getId(),
+                redemption.getRewardProduct().getId(),
+                redemption.getProductName(),
+                productImageUrl,
+                redemption.getUsedPoint(),
+                redemption.getStatus(),
+                fulfillment.getRewardFulfillmentType(),
+                fulfillment.getStatus(),
+                redemption.getCreatedAt()
+        );
+    }
+
+    public static RewardRedemptionHistoryPageResponseDTO toRewardRedemptionHistoryPageResponse(
+            Page<RewardRedemptionHistoryResponseDTO> page
+    ) {
+        return new RewardRedemptionHistoryPageResponseDTO(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.hasNext()
+        );
+    }
+}

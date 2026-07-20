@@ -7,7 +7,17 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "reward_redemptions")
+@Table(
+        name = "reward_redemptions",
+        indexes = @Index(
+                name = "idx_reward_redemptions_user_created_at",
+                columnList = "user_id, created_at"
+        ),
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_reward_redemptions_user_idempotency_key",
+                columnNames = {"user_id", "idempotency_key"}
+        )
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
@@ -30,14 +40,32 @@ public class RewardRedemption extends BaseEntity {
     @JoinColumn(name = "shipping_address_id")
     private ShippingAddress shippingAddress;
 
+    @Column(name = "product_name", nullable = false, length = 100)
+    private String productName;
+
+    @Column(name = "product_image_key", nullable = false, length = 500)
+    private String productImageKey;
+
     @Column(name = "receiver_name", nullable = false, length = 50)
     private String receiverName;
 
     @Column(name = "receiver_phone", nullable = false, length = 30)
     private String receiverPhone;
 
+    @Column(name = "postal_code", length = 5)
+    private String postalCode;
+
+    @Column(name = "address1", length = 255)
+    private String address1;
+
+    @Column(name = "address2", length = 255)
+    private String address2;
+
     @Column(name = "used_point", nullable = false)
     private Integer usedPoint;
+
+    @Column(name = "idempotency_key", nullable = false, length = 128)
+    private String idempotencyKey;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)

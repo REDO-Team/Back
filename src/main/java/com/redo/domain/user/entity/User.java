@@ -74,6 +74,11 @@ public class User {
         this.totalPoints += amount;
     }
 
+    // 리워드 상품 구매 시 포인트를 차감하는 메서드
+    public void usePoint(Integer amount) {
+        this.totalPoints -= amount;
+    }
+
     // 일반 가입 유저 객체 만드는 메서드
     public static User createGeneral(String loginId, String email, String passwordHash) {
         User user = new User();
