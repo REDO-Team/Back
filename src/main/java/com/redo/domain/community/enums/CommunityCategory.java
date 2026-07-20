@@ -7,9 +7,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum CommunityCategory {
 
-    INFORMATION_SHARING("정보공유"),
-    REWARD_REVIEW("리워드후기"),
-    ENVIRONMENTAL_PRACTICE("환경실천");
+    INFORMATION_SHARING("정보공유", 1),
+    REWARD_REVIEW("리워드후기", 2),
+    ENVIRONMENTAL_PRACTICE("환경실천", 3);
+
 
     private final String description;
+    private final int code;
 }
