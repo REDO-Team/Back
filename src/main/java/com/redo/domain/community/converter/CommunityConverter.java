@@ -29,27 +29,29 @@ public class CommunityConverter {
     private CommunityConverter() {
     }
 
-    public static CommunityResponseDTO toCommunityResponse(Community community, long numComments) {
+    public static CommunityResponseDTO toCommunityResponse(Community community, long numComments, String imageUrl) {
         return new CommunityResponseDTO(
                 community.getId(),
                 String.valueOf(community.getCategory().getCode()),
                 community.getTitle(),
-                // TODO: CommunityImg(imageKey) -> 이미지 URL 변환. S3 인프라 구축 후 대표 이미지 URL 매핑.
-                null,
+                imageUrl,
                 numComments,
                 community.getCreatedAt()
         );
     }
 
-    public static CommunityDetailResponseDTO toCommunityDetailResponse(Community community, String writer) {
+    public static CommunityDetailResponseDTO toCommunityDetailResponse(
+            Community community,
+            String writer,
+            String imageUrl
+    ) {
         return new CommunityDetailResponseDTO(
                 community.getId(),
                 community.getTitle(),
                 writer,
                 community.getContent(),
                 community.getCreatedAt(),
-                // TODO: CommunityImg(imageKey) -> 이미지 URL 변환. S3 인프라 구축 후 대표 이미지 URL 매핑.
-                null
+                imageUrl
         );
     }
 

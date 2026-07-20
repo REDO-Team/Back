@@ -13,6 +13,7 @@ import com.redo.domain.community.dto.res.CommunityLikeResponseDTO;
 import com.redo.domain.community.dto.res.CommunityResponseDTO;
 import com.redo.domain.community.entity.Community;
 import com.redo.domain.community.entity.CommunityComment;
+import com.redo.domain.community.entity.CommunityImg;
 import com.redo.domain.community.entity.CommunityLike;
 import com.redo.domain.community.entity.CommunityLikeId;
 import com.redo.domain.community.enums.CommunityCategory;
@@ -28,6 +29,7 @@ import com.redo.domain.user.exception.UserErrorCode;
 import com.redo.domain.user.repository.UserProfileRepository;
 import com.redo.domain.user.repository.UserRepository;
 import com.redo.global.apiPayload.exception.GeneralException;
+import com.redo.global.s3.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,10 +38,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -49,12 +49,16 @@ public class CommunityService {
     // 전체 보기 전용 카테고리 코드(특정 카테고리 필터 없이 전체 조회)
     private static final int CATEGORY_ALL = 0;
 
+    // 게시글 이미지가 업로드되는 S3 디렉터리 접두어
+    private static final String IMAGE_DIRECTORY = "community";
+
     private final CommunityRepository communityRepository;
     private final CommunityCommentRepository communityCommentRepository;
     private final CommunityImgRepository communityImgRepository;
     private final CommunityLikeRepository communityLikeRepository;
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final S3Service s3Service;
 
     // 게시글 목록 조회 로직
     public Page<CommunityResponseDTO> getCommunityPosts(Integer category, Pageable pageable) {
@@ -64,7 +68,8 @@ public class CommunityService {
 
         return communities.map(community -> CommunityConverter.toCommunityResponse(
                 community,
-                communityCommentRepository.countByCommunityAndDeletedAtIsNull(community)
+                communityCommentRepository.countByCommunityAndDeletedAtIsNull(community),
+                getRepresentativeImageUrl(community)
         ));
     }
 
@@ -73,7 +78,11 @@ public class CommunityService {
         Community community = communityRepository.findByIdAndDeletedAtIsNull(communityId)
                 .orElseThrow(() -> new CommunityException(CommunityErrorCode.COMMUNITY_NOT_FOUND));
 
-        return CommunityConverter.toCommunityDetailResponse(community, getNickname(community.getUser().getId()));
+        return CommunityConverter.toCommunityDetailResponse(
+                community,
+                getNickname(community.getUser().getId()),
+                getRepresentativeImageUrl(community)
+        );
     }
 
     // 게시글 등록 로직
@@ -87,7 +96,9 @@ public class CommunityService {
                 CommunityConverter.toCommunity(user, category, request.title(), request.content())
         );
 
-        List<String> imageUrls = saveImages(community, request.image());
+        List<String> imageUrls = saveImages(community, request.image()).stream()
+                .map(this::createImageUrl)
+                .toList();
 
         return CommunityConverter.toCommunityCreateResponse(community, imageUrls, getNickname(userId));
     }
@@ -212,34 +223,38 @@ public class CommunityService {
         }
     }
 
-    // TODO: S3 파일 업로드 인프라 구축 후 실제 업로드를 붙이고 저장된 객체 URL 을 반환하도록 수정.
-    //  현재는 업로드될 S3 키만 생성해 저장하고 그 키를 응답에 담는다.
+    // 게시글 이미지 S3 업로드 및 객체 키 저장 로직. 업로드한 객체 키 목록을 반환한다.
     private List<String> saveImages(Community community, List<MultipartFile> images) {
         if (images == null) {
             return List.of();
         }
 
-        List<String> imageKeys = new ArrayList<>();
-        for (MultipartFile image : images) {
-            if (image == null || image.isEmpty()) {
-                continue;
-            }
-            String imageKey = buildImageKey(community.getId(), image.getOriginalFilename());
-            communityImgRepository.save(CommunityConverter.toCommunityImg(community, imageKey, imageKeys.size()));
-            imageKeys.add(imageKey);
+        List<MultipartFile> uploadTargets = images.stream()
+                .filter(image -> image != null && !image.isEmpty())
+                .toList();
+
+        List<String> imageKeys = s3Service.uploadAll(uploadTargets, IMAGE_DIRECTORY + "/" + community.getId());
+        for (int order = 0; order < imageKeys.size(); order++) {
+            communityImgRepository.save(CommunityConverter.toCommunityImg(community, imageKeys.get(order), order));
         }
         return imageKeys;
     }
 
-    private String buildImageKey(Long communityId, String originalFilename) {
-        String extension = "";
-        if (originalFilename != null) {
-            int dotIndex = originalFilename.lastIndexOf('.');
-            if (dotIndex >= 0) {
-                extension = originalFilename.substring(dotIndex);
-            }
+    // 대표 이미지(display_order 최솟값)의 S3 객체 키를 조회용 Presigned URL로 변환하는 로직
+    private String getRepresentativeImageUrl(Community community) {
+        return communityImgRepository.findFirstByCommunityOrderByDisplayOrderAsc(community)
+                .map(CommunityImg::getImageKey)
+                .map(this::createImageUrl)
+                .orElse(null);
+    }
+
+    // S3 객체 키를 이미지 조회용 Presigned URL로 변환하는 로직
+    private String createImageUrl(String imageKey) {
+        if (imageKey == null || imageKey.isBlank()) {
+            return null;
         }
-        return "community/" + communityId + "/" + UUID.randomUUID() + extension;
+
+        return s3Service.createPresignedUrl(imageKey);
     }
 
     private String getNickname(Long userId) {
