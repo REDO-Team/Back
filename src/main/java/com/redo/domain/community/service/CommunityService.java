@@ -40,6 +40,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -60,16 +62,19 @@ public class CommunityService {
     private final UserProfileRepository userProfileRepository;
     private final S3Service s3Service;
 
-    // 게시글 목록 조회 로직
+    // 게시글 목록 조회 로직(댓글 수/대표 이미지는 게시글별 단건 쿼리 대신 IN 조회로 한 번에 가져온다)
     public Page<CommunityResponseDTO> getCommunityPosts(Integer category, Pageable pageable) {
         Page<Community> communities = (category == null || category == CATEGORY_ALL)
                 ? communityRepository.findByDeletedAtIsNull(pageable)
                 : communityRepository.findByCategoryAndDeletedAtIsNull(toCategory(category), pageable);
 
+        Map<Long, Long> commentCounts = getCommentCounts(communities.getContent());
+        Map<Long, String> representativeImageKeys = getRepresentativeImageKeys(communities.getContent());
+
         return communities.map(community -> CommunityConverter.toCommunityResponse(
                 community,
-                communityCommentRepository.countByCommunityAndDeletedAtIsNull(community),
-                getRepresentativeImageUrl(community)
+                commentCounts.getOrDefault(community.getId(), 0L),
+                createImageUrl(representativeImageKeys.get(community.getId()))
         ));
     }
 
@@ -98,7 +103,7 @@ public class CommunityService {
 
         // 등록 응답에는 만료되는 Presigned URL 대신 저장된 S3 객체 키를 그대로 담는다.
         // (등록 직후 즉시 조회 용도가 아니며, 조회 시점에 상세/목록 API가 Presigned URL을 새로 발급한다.)
-        List<String> imageKeys = saveImages(community, request.image());
+        List<String> imageKeys = saveImages(community, request.images());
 
         return CommunityConverter.toCommunityCreateResponse(community, imageKeys, getNickname(userId));
     }
@@ -177,9 +182,13 @@ public class CommunityService {
         }
 
         communityLikeRepository.save(CommunityConverter.toCommunityLike(community, user));
-        community.increaseLikeCount();
+        // 동시 요청에서 갱신 유실이 없도록 엔티티 증감 대신 DB 원자적 UPDATE 를 사용한다.
+        communityRepository.increaseLikeCount(community.getId());
 
-        return CommunityConverter.toCommunityLikeResponse(userId, community.getLikeCount());
+        return CommunityConverter.toCommunityLikeResponse(
+                userId,
+                communityRepository.findLikeCountById(community.getId())
+        );
     }
 
     // 게시글 좋아요 취소 로직
@@ -191,9 +200,13 @@ public class CommunityService {
                 .orElseThrow(() -> new CommunityException(CommunityErrorCode.NOT_LIKED));
 
         communityLikeRepository.delete(like);
-        community.decreaseLikeCount();
+        // 동시 요청에서 갱신 유실이 없도록 엔티티 증감 대신 DB 원자적 UPDATE 를 사용한다.
+        communityRepository.decreaseLikeCount(community.getId());
 
-        return CommunityConverter.toCommunityLikeResponse(userId, community.getLikeCount());
+        return CommunityConverter.toCommunityLikeResponse(
+                userId,
+                communityRepository.findLikeCountById(community.getId())
+        );
     }
 
     // 게시글 삭제 로직(소프트 삭제)
@@ -238,6 +251,33 @@ public class CommunityService {
             communityImgRepository.save(CommunityConverter.toCommunityImg(community, imageKeys.get(order), order));
         }
         return imageKeys;
+    }
+
+    // 목록의 게시글별 삭제되지 않은 댓글 수를 한 번의 집계 쿼리로 조회하는 로직
+    private Map<Long, Long> getCommentCounts(List<Community> communities) {
+        if (communities.isEmpty()) {
+            return Map.of();
+        }
+
+        return communityCommentRepository.findCommentCountsByCommunities(communities).stream()
+                .collect(Collectors.toMap(
+                        CommunityCommentRepository.CommunityCommentCount::getCommunityId,
+                        CommunityCommentRepository.CommunityCommentCount::getCommentCount
+                ));
+    }
+
+    // 목록의 게시글별 대표 이미지(display_order 최솟값) 객체 키를 한 번의 쿼리로 조회하는 로직
+    private Map<Long, String> getRepresentativeImageKeys(List<Community> communities) {
+        if (communities.isEmpty()) {
+            return Map.of();
+        }
+
+        return communityImgRepository.findByCommunityInOrderByDisplayOrderAsc(communities).stream()
+                .collect(Collectors.toMap(
+                        image -> image.getCommunity().getId(),// 키 추출 람다
+                        CommunityImg::getImageKey,                          // 값 추출 람다
+                        (first, duplicate) -> first            // 대표 이미지를 제외하고 모두 무시
+                ));
     }
 
     // 대표 이미지(display_order 최솟값)의 S3 객체 키를 조회용 Presigned URL로 변환하는 로직

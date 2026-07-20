@@ -16,6 +16,7 @@ import com.redo.domain.community.exception.code.CommunityErrorCode;
 import com.redo.domain.community.exception.code.CommunitySuccessCode;
 import com.redo.domain.community.service.CommunityService;
 import com.redo.global.apiPayload.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -87,7 +88,7 @@ public class CommunityController {
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<CommunityCreateResponseDTO> createCommunityPost(
             @AuthenticationPrincipal Long userId,
-            @ModelAttribute CommunityCreateRequestDTO request
+            @Valid @ModelAttribute CommunityCreateRequestDTO request
     ) {
         return ApiResponse.onSuccess(
                 CommunitySuccessCode.CREATE_COMMUNITY_POST_SUCCESS,
@@ -102,7 +103,7 @@ public class CommunityController {
             @RequestParam(required = false) Long cursor,
             @RequestParam(required = false) Integer length
     ) {
-        if (length != null && length < MIN_PAGE_SIZE) {
+        if (length != null && (length < MIN_PAGE_SIZE || length > MAX_PAGE_SIZE)) {
             throw new CommunityException(CommunityErrorCode.INVALID_PAGE_REQUEST);
         }
 
@@ -118,7 +119,7 @@ public class CommunityController {
     public ApiResponse<CommunityCommentCreateResponseDTO> createCommunityComment(
             @AuthenticationPrincipal Long userId,
             @PathVariable Long communityId,
-            @RequestBody CommunityCommentCreateRequestDTO request
+            @Valid @RequestBody CommunityCommentCreateRequestDTO request
     ) {
         return ApiResponse.onSuccess(
                 CommunitySuccessCode.CREATE_COMMUNITY_COMMENT_SUCCESS,
@@ -154,7 +155,7 @@ public class CommunityController {
 
     // 커뮤니티 게시글 좋아요 취소 API
     @PostMapping("/{communityId}/unlike")
-    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseStatus(HttpStatus.OK)
     public ApiResponse<CommunityLikeResponseDTO> unlikeCommunityPost(
             @AuthenticationPrincipal Long userId,
             @PathVariable Long communityId

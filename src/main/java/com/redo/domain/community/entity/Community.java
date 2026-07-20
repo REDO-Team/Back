@@ -62,15 +62,4 @@ public class Community extends BaseEntity {
         this.deletedAt = LocalDateTime.now();
     }
 
-    public void increaseLikeCount() {
-        this.likeCount = currentLikeCount() + 1;
-    }
-
-    public void decreaseLikeCount() {
-        this.likeCount = Math.max(0, currentLikeCount() - 1);
-    }
-
-    private int currentLikeCount() {
-        return likeCount == null ? 0 : likeCount;
-    }
 }

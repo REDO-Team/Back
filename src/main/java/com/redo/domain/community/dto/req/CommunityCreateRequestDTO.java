@@ -1,13 +1,15 @@
 package com.redo.domain.community.dto.req;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public record CommunityCreateRequestDTO(
-        Integer category,
-        String title,
-        String content,
-        List<MultipartFile> image
+        @NotNull Integer category,
+        @NotBlank String title,
+        @NotBlank String content,
+        List<MultipartFile> images
 ) {
 }
