@@ -2,6 +2,7 @@ package com.redo.domain.recycleGuide.entity.Mapping;
 
 import com.redo.domain.recycleGuide.entity.RecycleGuide;
 import com.redo.domain.user.entity.User;
+import com.redo.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,7 +15,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class RecycleGuideFavorite {
+public class RecycleGuideFavorite extends BaseEntity {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
