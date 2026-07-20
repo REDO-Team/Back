@@ -96,11 +96,11 @@ public class CommunityService {
                 CommunityConverter.toCommunity(user, category, request.title(), request.content())
         );
 
-        List<String> imageUrls = saveImages(community, request.image()).stream()
-                .map(this::createImageUrl)
-                .toList();
+        // 등록 응답에는 만료되는 Presigned URL 대신 저장된 S3 객체 키를 그대로 담는다.
+        // (등록 직후 즉시 조회 용도가 아니며, 조회 시점에 상세/목록 API가 Presigned URL을 새로 발급한다.)
+        List<String> imageKeys = saveImages(community, request.image());
 
-        return CommunityConverter.toCommunityCreateResponse(community, imageUrls, getNickname(userId));
+        return CommunityConverter.toCommunityCreateResponse(community, imageKeys, getNickname(userId));
     }
 
     // 댓글 목록 조회 로직(comment ID 기준 커서 페이징, cursor/length 없으면 전체 반환)

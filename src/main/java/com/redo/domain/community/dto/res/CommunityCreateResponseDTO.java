@@ -7,7 +7,7 @@ public record CommunityCreateResponseDTO(
         Long id,
         String title,
         String content,
-        List<String> imageUrls,
+        List<String> imageKeys,
         String writer,
         LocalDateTime createdAt
 ) {

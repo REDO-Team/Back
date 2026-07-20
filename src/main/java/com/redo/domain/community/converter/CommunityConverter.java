@@ -85,14 +85,14 @@ public class CommunityConverter {
 
     public static CommunityCreateResponseDTO toCommunityCreateResponse(
             Community community,
-            List<String> imageUrls,
+            List<String> imageKeys,
             String writer
     ) {
         return new CommunityCreateResponseDTO(
                 community.getId(),
                 community.getTitle(),
                 community.getContent(),
-                imageUrls,
+                imageKeys,
                 writer,
                 community.getCreatedAt()
         );
