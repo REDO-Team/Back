@@ -85,6 +85,7 @@ public class ProfileService {
         return new ProfileResDTO.CreateProfile(user.getId());
     }
 
+
     @Transactional
     public ProfileResDTO.ProfileImage updateProfileImage(Long userId, MultipartFile file) {
         UserProfile profile = userProfileRepository.findByUserId(userId)
@@ -96,19 +97,18 @@ public class ProfileService {
         try {
             profile.updateProfileImageKey(newImageKey);
             userProfileRepository.saveAndFlush(profile);
+
+            String presignedUrl = s3Service.createPresignedUrl(newImageKey);
+
+            if (oldImageKey != null) {
+                s3Service.delete(oldImageKey);
+            }
+
+            return new ProfileResDTO.ProfileImage(presignedUrl);
         } catch (Exception e) {
             s3Service.delete(newImageKey);
             throw e;
         }
-
-        String presignedUrl = s3Service.createPresignedUrl(newImageKey);
-
-        // 예전 이미지 삭제는 맨 마지막, 모든 게 성공한 다음에
-        if (oldImageKey != null) {
-            s3Service.delete(oldImageKey);
-        }
-
-        return new ProfileResDTO.ProfileImage(presignedUrl);
     }
 
 }
