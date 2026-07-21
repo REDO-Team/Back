@@ -30,8 +30,8 @@ public class UserProfile {
     @Column(name = "nickname", length = 30, nullable = false, unique = true)
     private String nickname;
 
-    @Column(name = "profile_image_url", length = 500)
-    private String profileImageUrl;
+    @Column(name = "profile_image_key", length = 500)
+    private String profileImageKey;
 
     @Column(name = "character_code", length = 50)
     private String characterCode;
@@ -68,7 +68,6 @@ public class UserProfile {
         return profile;
     }
 
-    public void updateProfileImage(String profileImageUrl) {
-        this.profileImageUrl = profileImageUrl;
-    }
-}
+    public void updateProfileImageKey(String profileImageKey) {
+        this.profileImageKey = profileImageKey;
+    }}

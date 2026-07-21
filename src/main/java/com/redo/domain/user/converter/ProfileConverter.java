@@ -6,8 +6,8 @@ import com.redo.domain.user.entity.UserProfile;
 
 public class ProfileConverter {
 
-    public static ProfileResDTO.ProfileInfo toProfileInfo(User user, UserProfile profile) {
-        return new ProfileResDTO.ProfileInfo(user.getId(), profile.getNickname(), profile.getProfileImageUrl(), user.getTotalPoints());
+    public static ProfileResDTO.ProfileInfo toProfileInfo(User user, UserProfile profile, String imageUrl) {
+        return new ProfileResDTO.ProfileInfo(user.getId(), profile.getNickname(), imageUrl, user.getTotalPoints());
     }
 
 }

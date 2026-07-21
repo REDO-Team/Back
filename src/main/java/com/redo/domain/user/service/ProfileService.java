@@ -9,10 +9,12 @@ import com.redo.domain.user.exception.ProfileErrorCode;
 import com.redo.domain.user.repository.UserProfileRepository;
 import com.redo.domain.user.repository.UserRepository;
 import com.redo.global.apiPayload.exception.GeneralException;
+import com.redo.global.s3.service.S3Service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @Service
@@ -21,6 +23,7 @@ public class ProfileService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final S3Service s3Service;
 
 
 
@@ -31,7 +34,14 @@ public class ProfileService {
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
 
-        return ProfileConverter.toProfileInfo(user, profile);
+        String imageUrl;
+        if (profile.getProfileImageKey() != null) {
+            imageUrl = s3Service.createPresignedUrl(profile.getProfileImageKey());
+        } else {
+            imageUrl = profile.getCharacterCode();
+        }
+
+        return ProfileConverter.toProfileInfo(user, profile, imageUrl);
     }
 
 
@@ -73,6 +83,32 @@ public class ProfileService {
             throw new GeneralException(ProfileErrorCode.DUPLICATE_NICKNAME);
         }
         return new ProfileResDTO.CreateProfile(user.getId());
+    }
+
+
+    @Transactional
+    public ProfileResDTO.ProfileImage updateProfileImage(Long userId, MultipartFile file) {
+        UserProfile profile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
+
+        String oldImageKey = profile.getProfileImageKey();
+        String newImageKey = s3Service.upload(file, "profiles");
+
+        try {
+            profile.updateProfileImageKey(newImageKey);
+            userProfileRepository.saveAndFlush(profile);
+
+            String presignedUrl = s3Service.createPresignedUrl(newImageKey);
+
+            if (oldImageKey != null) {
+                s3Service.delete(oldImageKey);
+            }
+
+            return new ProfileResDTO.ProfileImage(presignedUrl);
+        } catch (Exception e) {
+            s3Service.delete(newImageKey);
+            throw e;
+        }
     }
 
 }
