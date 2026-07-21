@@ -22,6 +22,10 @@ public enum ShippingAddressErrorCode implements BaseErrorCode {
             "SHIPPING_ADDRESS_404_001",
             "배송지를 찾을 수 없습니다."),
 
+    SHIPPING_ADDRESS_FORBIDDEN(HttpStatus.FORBIDDEN,
+            "SHIPPING_ADDRESS_403_001",
+            "해당 배송지에 접근할 수 없습니다."),
+
     ADDRESS_SEARCH_FAILED(HttpStatus.BAD_GATEWAY,
             "SHIPPING_ADDRESS_502_001",
             "주소 검색에 실패했습니다.");

@@ -46,4 +46,17 @@ public class RewardProduct extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private RewardProductStatus status;
+
+    // 리워드 상품 구매 시 재고를 1개 차감하는 메서드
+    public void decreaseStock() {
+        if (this.stockQuantity == null || this.stockQuantity <= 0) {
+            throw new IllegalStateException("상품 재고가 부족합니다.");
+        }
+
+        this.stockQuantity -= 1;
+
+        if (this.stockQuantity == 0) {
+            this.status = RewardProductStatus.SOLD_OUT;
+        }
+    }
 }

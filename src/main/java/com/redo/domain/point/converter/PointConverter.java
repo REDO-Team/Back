@@ -36,7 +36,7 @@ public class PointConverter {
 
         if (transaction.getTransactionType() == PointTransactionType.USE
                 && transaction.getRewardRedemption() != null) {
-            return transaction.getRewardRedemption().getRewardProduct().getName() + " 교환";
+            return transaction.getRewardRedemption().getProductName() + " 구매";
         }
 
         return "포인트 내역";

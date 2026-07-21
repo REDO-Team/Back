@@ -16,6 +16,8 @@ public interface ShippingAddressRepository extends JpaRepository<ShippingAddress
 
     Optional<ShippingAddress> findByIdAndUserAndDeletedAtIsNull(Long id, User user);
 
+    Optional<ShippingAddress> findByIdAndDeletedAtIsNull(Long id);
+
     boolean existsByUserAndDeletedAtIsNull(User user);
 
     @Modifying

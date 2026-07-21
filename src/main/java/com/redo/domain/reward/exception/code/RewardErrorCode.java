@@ -14,6 +14,30 @@ public enum RewardErrorCode implements BaseErrorCode {
             "REWARD_400_001",
             "페이지 요청 값이 올바르지 않습니다."),
 
+    REWARD_PRODUCT_NOT_ACTIVE(HttpStatus.BAD_REQUEST,
+            "REWARD_400_002",
+            "판매 중인 상품이 아닙니다."),
+
+    REWARD_PRODUCT_OUT_OF_STOCK(HttpStatus.BAD_REQUEST,
+            "REWARD_400_003",
+            "상품 재고가 부족합니다."),
+
+    SHIPPING_ADDRESS_REQUIRED(HttpStatus.BAD_REQUEST,
+            "REWARD_400_004",
+            "배송 상품은 배송지 선택이 필요합니다."),
+
+    COUPON_RECIPIENT_REQUIRED(HttpStatus.BAD_REQUEST,
+            "REWARD_400_005",
+            "기프티콘 수신자 정보를 입력해주세요."),
+
+    INVALID_IDEMPOTENCY_KEY(HttpStatus.BAD_REQUEST,
+            "REWARD_400_006",
+            "구매 요청 멱등키가 올바르지 않습니다."),
+
+    DUPLICATE_REDEMPTION_REQUEST(HttpStatus.CONFLICT,
+            "REWARD_409_001",
+            "이미 처리된 구매 요청입니다."),
+
     REWARD_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND,
             "REWARD_404_001",
             "리워드 상품을 찾을 수 없습니다.");

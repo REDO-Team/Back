@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/rewards/products")
-@Tag(name = "리워드 상품", description = "리워드 상품 목록 및 상세 조회 API")
+@Tag(name = "리워드 상품", description = "리워드 상품 조회, 구매 및 구매 내역 API")
 public class RewardProductController {
 
     private static final int MIN_PAGE = 0;
