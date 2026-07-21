@@ -68,4 +68,35 @@ public class SocialOAuthService {
         }
 
     }
+
+    // 네이버 사용자 정보 조회
+    public SocialUserInfo getNaverUserInfo(String accessToken) {
+        WebClient webClient = WebClient.create("https://openapi.naver.com");
+
+        NaverResponse response = webClient.get()
+                .uri("/v1/nid/me")
+                .header("Authorization", "Bearer " + accessToken)
+                .retrieve()
+                .bodyToMono(NaverResponse.class)
+                .block();
+
+        if (response == null || response.response() == null || response.response().email() == null) {
+            throw new GeneralException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+        }
+
+        return new SocialUserInfo(
+                response.response().id(),
+                response.response().email()
+        );
+    }
+
+    private record NaverResponse(
+            NaverAccount response  // 네이버 "response"라는 상자로 한 번 더 감싸져 있음
+    ) {
+        private record NaverAccount(
+                String id,
+                String email
+        ) {
+        }
+    }
 }

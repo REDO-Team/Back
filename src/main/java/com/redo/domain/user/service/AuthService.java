@@ -135,7 +135,9 @@
                 userInfo = socialOAuthService.getGoogleUserInfo(socialAccessToken);
             } else if (provider.equals("KAKAO")) {
                 userInfo = socialOAuthService.getKakaoUserInfo(socialAccessToken);
-            } else {
+            } else if (provider.equals("NAVER")) {
+                userInfo = socialOAuthService.getNaverUserInfo(socialAccessToken);
+            }else {
                 throw new GeneralException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
             }
 
