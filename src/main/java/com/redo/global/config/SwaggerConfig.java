@@ -39,7 +39,10 @@ public class SwaggerConfig {
         return new OpenAPI()
                 .addServersItem(new Server()
                         .url(baseUrl)
-                        .description("Server"));
+                        .description("배포 서버"))
+                .addServersItem(new Server()
+                        .url("http://localhost:8080")
+                        .description("로컬 서버"));
     }
 
 
