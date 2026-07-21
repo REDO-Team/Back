@@ -4,6 +4,7 @@ import com.redo.domain.user.exception.AuthErrorCode;
 import com.redo.global.apiPayload.exception.GeneralException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 @Component
 public class SocialOAuthService {
@@ -16,6 +17,8 @@ public class SocialOAuthService {
                 .uri("/oauth2/v2/userinfo")
                 .header("Authorization", "Bearer " + accessToken)
                 .retrieve()
+                .onStatus(status -> status.isError(), clientResponse ->
+                        Mono.error(new GeneralException(AuthErrorCode.INVALID_SOCIAL_TOKEN)))
                 .bodyToMono(GoogleResponse.class)
                 .block();
 
@@ -46,6 +49,8 @@ public class SocialOAuthService {
                 .uri("/v2/user/me")
                 .header("Authorization", "Bearer " + accessToken)
                 .retrieve()
+                .onStatus(status -> status.isError(), clientResponse ->
+                        Mono.error(new GeneralException(AuthErrorCode.INVALID_SOCIAL_TOKEN)))
                 .bodyToMono(KakaoResponse.class)
                 .block();
         if (response == null || response.kakao_account() == null || response.kakao_account().email() == null) {
@@ -67,5 +72,38 @@ public class SocialOAuthService {
         ) {
         }
 
+    }
+
+    // 네이버 사용자 정보 조회
+    public SocialUserInfo getNaverUserInfo(String accessToken) {
+        WebClient webClient = WebClient.create("https://openapi.naver.com");
+
+        NaverResponse response = webClient.get()
+                .uri("/v1/nid/me")
+                .header("Authorization", "Bearer " + accessToken)
+                .retrieve()
+                .onStatus(status -> status.isError(), clientResponse ->
+                        Mono.error(new GeneralException(AuthErrorCode.INVALID_SOCIAL_TOKEN)))
+                .bodyToMono(NaverResponse.class)
+                .block();
+
+        if (response == null || response.response() == null || response.response().email() == null) {
+            throw new GeneralException(AuthErrorCode.INVALID_SOCIAL_TOKEN);
+        }
+
+        return new SocialUserInfo(
+                response.response().id(),
+                response.response().email()
+        );
+    }
+
+    private record NaverResponse(
+            NaverAccount response  // 네이버 "response"라는 상자로 한 번 더 감싸져 있음
+    ) {
+        private record NaverAccount(
+                String id,
+                String email
+        ) {
+        }
     }
 }

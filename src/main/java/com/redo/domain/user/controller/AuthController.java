@@ -155,6 +155,33 @@ public class AuthController {
         return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LOGIN_SUCCESS, responseBody);
     }
 
+    @PostMapping("/login/naver")
+    public ApiResponse<AuthResDTO.SocialLogin> loginNaver(
+            @RequestBody @Valid AuthReqDTO.SocialLogin request,
+            HttpServletResponse response
+    ) {
+        AuthService.SocialLoginResult socialLoginResult = authService.socialLogin("NAVER", request.accessToken());
+        // 기존회원경우 ( 신규회원은 건너뜀)
+        if (!socialLoginResult.isNewUser()) {
+            ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", socialLoginResult.refreshToken())
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("Strict")
+                    .path("/")
+                    .maxAge(Duration.ofMillis(jwtUtil.getRefreshTokenExpiration()))
+                    .build();
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+        }
+        AuthResDTO.SocialLogin responseBody = AuthConverter.toSocialLoginResponse(
+                socialLoginResult.user(),
+                socialLoginResult.isNewUser(),
+                socialLoginResult.accessToken(),
+                socialLoginResult.socialProvider(),
+                socialLoginResult.socialId()
+        );
+        return ApiResponse.onSuccess(AuthSuccessCode.SOCIAL_LOGIN_SUCCESS, responseBody);
+    }
+
     @GetMapping("/login-id/check")
     public ApiResponse<AuthResDTO.LoginIdCheck> checkLoginId(
             @RequestParam String loginId
