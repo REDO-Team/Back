@@ -11,6 +11,7 @@ import com.redo.global.security.JwtUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/users")
@@ -69,6 +70,24 @@ public class ProfileController {
         ProfileResDTO.CreateProfile responseBody = profileService.createProfile(userId, request);
 
         return ApiResponse.onSuccess(ProfileSuccessCode.CREATE_PROFILE_SUCCESS, responseBody);
+    }
+
+    @PatchMapping(value = "/me/profile/image", consumes = "multipart/form-data")
+    public ApiResponse<ProfileResDTO.ProfileImage> updateProfileImage(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestPart("profileImage") MultipartFile file
+    ) {
+        String accessToken = authHeader.replace("Bearer ", "");
+        Long userId;
+        try {
+            userId = jwtUtil.getUserIdFromToken(accessToken);
+        } catch (Exception e) {
+            throw new GeneralException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+        }
+
+        ProfileResDTO.ProfileImage responseBody = profileService.updateProfileImage(userId, file);
+
+        return ApiResponse.onSuccess(ProfileSuccessCode.UPDATE_IMAGE_SUCCESS, responseBody);
     }
 
 }
