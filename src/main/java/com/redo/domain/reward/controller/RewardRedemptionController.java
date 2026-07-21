@@ -46,7 +46,7 @@ public class RewardRedemptionController {
     public ApiResponse<RewardRedemptionResponseDTO> redeem(
             @AuthenticationPrincipal Long userId,
             @Parameter(description = "중복 구매 방지를 위한 요청 고유 키", required = true)
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody RewardRedemptionCreateRequestDTO request
     ) {
         return ApiResponse.onSuccess(

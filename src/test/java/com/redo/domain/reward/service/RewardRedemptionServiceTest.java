@@ -16,7 +16,6 @@ import com.redo.domain.reward.enums.RewardFulfillmentStatus;
 import com.redo.domain.reward.enums.RewardFulfillmentType;
 import com.redo.domain.reward.enums.RewardProductStatus;
 import com.redo.domain.reward.enums.RewardProductType;
-import com.redo.domain.reward.enums.RewardRedemptionStatus;
 import com.redo.domain.reward.enums.ShippingAddressType;
 import com.redo.domain.reward.exception.RewardException;
 import com.redo.domain.reward.exception.code.RewardErrorCode;
@@ -99,7 +98,6 @@ class RewardRedemptionServiceTest {
         assertThat(result.rewardRedemptionId()).isEqualTo(4L);
         assertThat(result.usedPoint()).isEqualTo(1_000);
         assertThat(result.remainingPoint()).isEqualTo(4_000);
-        assertThat(result.status()).isEqualTo(RewardRedemptionStatus.REQUESTED);
         assertThat(user.getTotalPoints()).isEqualTo(4_000);
         assertThat(product.getStockQuantity()).isZero();
         assertThat(product.getStatus()).isEqualTo(RewardProductStatus.SOLD_OUT);
@@ -201,7 +199,6 @@ class RewardRedemptionServiceTest {
                 .receiverPhone("01012345678")
                 .usedPoint(1_000)
                 .idempotencyKey(IDEMPOTENCY_KEY)
-                .status(RewardRedemptionStatus.REQUESTED)
                 .build();
         ReflectionTestUtils.setField(redemption, "createdAt", LocalDateTime.of(2026, 7, 21, 12, 0));
         RewardFulfillment fulfillment = RewardFulfillment.builder()

@@ -17,7 +17,6 @@ import com.redo.domain.reward.enums.RewardFulfillmentStatus;
 import com.redo.domain.reward.enums.RewardFulfillmentType;
 import com.redo.domain.reward.enums.RewardProductStatus;
 import com.redo.domain.reward.enums.RewardProductType;
-import com.redo.domain.reward.enums.RewardRedemptionStatus;
 import com.redo.domain.reward.exception.RewardException;
 import com.redo.domain.reward.exception.ShippingAddressException;
 import com.redo.domain.reward.exception.code.RewardErrorCode;
@@ -86,7 +85,6 @@ public class RewardRedemptionService {
                 .address2(recipient.address2())
                 .usedPoint(rewardProduct.getPricePoint())
                 .idempotencyKey(normalizedIdempotencyKey)
-                .status(RewardRedemptionStatus.REQUESTED)
                 .build();
 
         RewardRedemption savedRedemption = rewardRedemptionRepository.save(redemption);
@@ -150,7 +148,7 @@ public class RewardRedemptionService {
         return new Recipient(
                 null,
                 request.receiverName().trim(),
-                request.receiverPhone(),
+                request.receiverPhone().trim(),
                 null,
                 null,
                 null
@@ -202,9 +200,10 @@ public class RewardRedemptionService {
     }
 
     private RewardFulfillmentType resolveFulfillmentType(RewardProductType rewardProductType) {
-        return rewardProductType == RewardProductType.PARTNER_BRAND
-                ? RewardFulfillmentType.DELIVERY
-                : RewardFulfillmentType.COUPON;
+        return switch (rewardProductType) {
+            case PARTNER_BRAND -> RewardFulfillmentType.DELIVERY;
+            case COUPON_GIFTICON -> RewardFulfillmentType.COUPON;
+        };
     }
 
     private RewardProduct getRewardProductForUpdate(Long rewardProductId) {

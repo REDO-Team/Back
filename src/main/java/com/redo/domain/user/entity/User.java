@@ -76,6 +76,14 @@ public class User {
 
     // 리워드 상품 구매 시 포인트를 차감하는 메서드
     public void usePoint(Integer amount) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("사용 포인트는 0보다 커야 합니다.");
+        }
+
+        if (this.totalPoints == null || this.totalPoints < amount) {
+            throw new IllegalStateException("보유 포인트가 부족합니다.");
+        }
+
         this.totalPoints -= amount;
     }
 

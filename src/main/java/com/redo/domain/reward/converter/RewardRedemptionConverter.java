@@ -21,8 +21,7 @@ public class RewardRedemptionConverter {
                 redemption.getRewardProduct().getId(),
                 redemption.getProductName(),
                 redemption.getUsedPoint(),
-                remainingPoint,
-                redemption.getStatus()
+                remainingPoint
         );
     }
 
@@ -38,7 +37,6 @@ public class RewardRedemptionConverter {
                 redemption.getProductName(),
                 productImageUrl,
                 redemption.getUsedPoint(),
-                redemption.getStatus(),
                 fulfillment.getRewardFulfillmentType(),
                 fulfillment.getStatus(),
                 redemption.getCreatedAt()

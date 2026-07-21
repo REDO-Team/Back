@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -89,6 +90,16 @@ public class GeneralExceptionAdvice {
         BaseErrorCode ec = GeneralErrorCode.VALIDATION_ERROR;
 
         String detail = ex.getParameterName() + ": 필수 파라미터가 누락되었습니다.";
+        return ResponseEntity.status(ec.getHttpStatus())
+                .body(ApiResponse.onFailure(ec, List.of(detail)));
+    }
+
+    // 필수 RequestHeader 누락
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ApiResponse<?>> handleMissingHeader(MissingRequestHeaderException ex) {
+        BaseErrorCode ec = GeneralErrorCode.VALIDATION_ERROR;
+
+        String detail = ex.getHeaderName() + ": 필수 헤더가 누락되었습니다.";
         return ResponseEntity.status(ec.getHttpStatus())
                 .body(ApiResponse.onFailure(ec, List.of(detail)));
     }

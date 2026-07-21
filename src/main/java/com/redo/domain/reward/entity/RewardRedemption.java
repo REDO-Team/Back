@@ -1,6 +1,5 @@
 package com.redo.domain.reward.entity;
 
-import com.redo.domain.reward.enums.RewardRedemptionStatus;
 import com.redo.domain.user.entity.User;
 import com.redo.global.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -66,8 +65,4 @@ public class RewardRedemption extends BaseEntity {
 
     @Column(name = "idempotency_key", nullable = false, length = 128)
     private String idempotencyKey;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private RewardRedemptionStatus status;
 }
