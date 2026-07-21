@@ -24,7 +24,7 @@ services:
       - --maxmemory
       - 128mb
       - --maxmemory-policy
-      - allkeys-lru
+      - noeviction
     volumes:
       - redis-data:/data
     healthcheck:

@@ -38,6 +38,10 @@ public enum RewardErrorCode implements BaseErrorCode {
             "REWARD_409_001",
             "이미 처리된 구매 요청입니다."),
 
+    REDEMPTION_LOCK_ACQUISITION_FAILED(HttpStatus.CONFLICT,
+            "REWARD_409_002",
+            "다른 구매 요청을 처리 중입니다. 잠시 후 다시 시도해주세요."),
+
     REWARD_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND,
             "REWARD_404_001",
             "리워드 상품을 찾을 수 없습니다.");

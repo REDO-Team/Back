@@ -7,6 +7,7 @@ import com.redo.domain.reward.dto.res.RewardRedemptionResponseDTO;
 import com.redo.domain.reward.exception.RewardException;
 import com.redo.domain.reward.exception.code.RewardErrorCode;
 import com.redo.domain.reward.exception.code.RewardSuccessCode;
+import com.redo.domain.reward.facade.RewardRedemptionFacade;
 import com.redo.domain.reward.service.RewardRedemptionService;
 import com.redo.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,13 +36,15 @@ public class RewardRedemptionController {
     private static final int MIN_PAGE_SIZE = 1;
     private static final int MAX_PAGE_SIZE = 50;
 
+    private final RewardRedemptionFacade rewardRedemptionFacade;
     private final RewardRedemptionService rewardRedemptionService;
 
     @PostMapping
     @Operation(
             summary = "리워드 상품 구매",
             description = "포인트와 재고를 차감하고 상품 구매 및 포인트 사용 내역을 생성합니다. "
-                    + "배송 상품은 shippingAddressId, 기프티콘은 receiverName과 receiverPhone이 필요합니다."
+                    + "배송 상품은 shippingAddressId, 기프티콘은 receiverName과 receiverPhone이 필요합니다. "
+                    + "동일 상품의 구매 요청은 분산 락을 통해 순차적으로 처리됩니다."
     )
     public ApiResponse<RewardRedemptionResponseDTO> redeem(
             @AuthenticationPrincipal Long userId,
@@ -51,7 +54,7 @@ public class RewardRedemptionController {
     ) {
         return ApiResponse.onSuccess(
                 RewardSuccessCode.CREATE_REWARD_REDEMPTION_SUCCESS,
-                rewardRedemptionService.redeem(userId, idempotencyKey, request)
+                rewardRedemptionFacade.redeem(userId, idempotencyKey, request)
         );
     }
 
