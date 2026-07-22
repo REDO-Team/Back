@@ -97,7 +97,7 @@ public class SwaggerConfig {
                 .group("03-certification")
                 .displayName("03. 배출 인증 API")
                 .pathsToMatch(
-                        "/api/certifications/**",
+                        "/api/certification/**",
                         "/api/ai-judgements/**",
                         "/api/recycle-judgement-templates/**"
                 )

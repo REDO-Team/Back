@@ -1,6 +1,7 @@
 package com.redo.domain.certification.entity;
 
 import com.redo.domain.certification.enums.AiJudgementResult;
+import com.redo.domain.certification.enums.CertificationFailureType;
 import com.redo.domain.certification.enums.CertificationSource;
 import com.redo.domain.certification.enums.CertificationStatus;
 import com.redo.domain.certification.repository.AiJudgementRepository;
@@ -26,10 +27,11 @@ class CertificationJpaMappingTest {
         assertThat(Certification.class.isAnnotationPresent(Entity.class)).isTrue();
         assertThat(Certification.class.getAnnotation(Table.class).name()).isEqualTo("certifications");
         assertJoinColumn(Certification.class, "user", "user_id", false);
-        assertJoinColumn(Certification.class, "recycleGuide", "guide_id", false);
+        assertJoinColumn(Certification.class, "recycleGuide", "guide_id", true);
         assertColumn(Certification.class, "imageKey", "image_key", false);
         assertStringEnum(Certification.class, "status");
         assertStringEnum(Certification.class, "certificationSource");
+        assertStringEnum(Certification.class, "failureType");
     }
 
     @Test
@@ -51,6 +53,11 @@ class CertificationJpaMappingTest {
                 .containsExactly(CertificationStatus.PROCESSING, CertificationStatus.PASSED, CertificationStatus.FAILED);
         assertThat(CertificationSource.values())
                 .containsExactly(CertificationSource.GENERAL, CertificationSource.AFTER_SEARCH);
+        assertThat(CertificationFailureType.values())
+                .containsExactly(
+                        CertificationFailureType.VLM_JUDGEMENT_FAILED,
+                        CertificationFailureType.DUPLICATE_GUIDE_TODAY
+                );
         assertThat(AiJudgementResult.values())
                 .containsExactly(AiJudgementResult.PASS, AiJudgementResult.FAIL);
         assertThat(JpaRepository.class.isAssignableFrom(CertificationRepository.class)).isTrue();
