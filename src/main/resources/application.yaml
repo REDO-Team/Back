@@ -2,6 +2,30 @@ spring:
   application:
     name: redo-back
 
+  ai:
+    model:
+      chat: google-genai
+    retry:
+      max-attempts: ${GEMINI_MAX_ATTEMPTS:3}
+      backoff:
+        initial-interval: 500ms
+        multiplier: 2
+        max-interval: 5s
+      on-client-errors: false
+      on-http-codes:
+        - 429
+        - 500
+        - 502
+        - 503
+        - 504
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:local-disabled}
+        chat:
+          options:
+            model: ${GEMINI_MODEL:gemini-2.5-flash}
+            max-output-tokens: ${GEMINI_MAX_OUTPUT_TOKENS:2048}
+
   servlet:
     multipart:
       max-file-size: 10MB
@@ -64,3 +88,13 @@ springdoc:
 
 app:
   base-url: http://13.209.188.93:8080
+  ai:
+    gemini:
+      enabled: ${GEMINI_ENABLED:false}
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-2.5-flash}
+      timeout: ${GEMINI_TIMEOUT:30s}
+      max-attempts: ${GEMINI_MAX_ATTEMPTS:3}
+      max-output-tokens: ${GEMINI_MAX_OUTPUT_TOKENS:2048}
+      max-media-count: ${GEMINI_MAX_MEDIA_COUNT:4}
+      max-media-size: ${GEMINI_MAX_MEDIA_SIZE:10MB}
