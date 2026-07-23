@@ -21,6 +21,11 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
             LocalDateTime endAt
     );
 
+    Optional<Certification> findTopByUserIdAndStatusOrderByCreatedAtDesc(
+            Long userId,
+            CertificationStatus status
+    );
+
     boolean existsByUserIdAndRecycleGuideIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
             Long userId,
             Long recycleGuideId,
@@ -30,6 +35,11 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
     );
 
     Optional<Certification> findTopByUserIdAndStatusInOrderByJudgedAtDesc(
+            Long userId,
+            Collection<CertificationStatus> statuses
+    );
+
+    Optional<Certification> findTopByUserIdAndStatusInAndJudgedAtIsNotNullOrderByJudgedAtDesc(
             Long userId,
             Collection<CertificationStatus> statuses
     );
