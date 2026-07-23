@@ -10,6 +10,10 @@ import java.util.Optional;
 
 public interface CertificationRepository extends JpaRepository<Certification, Long> {
 
+    Optional<Certification> findByIdAndUserId(Long certificationId, Long userId);
+
+    boolean existsByUserIdAndStatus(Long userId, CertificationStatus status);
+
     long countByUserIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
             Long userId,
             CertificationStatus status,
@@ -20,6 +24,19 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
     Optional<Certification> findTopByUserIdAndStatusOrderByCreatedAtDesc(
             Long userId,
             CertificationStatus status
+    );
+
+    boolean existsByUserIdAndRecycleGuideIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
+            Long userId,
+            Long recycleGuideId,
+            CertificationStatus status,
+            LocalDateTime startAt,
+            LocalDateTime endAt
+    );
+
+    Optional<Certification> findTopByUserIdAndStatusInOrderByJudgedAtDesc(
+            Long userId,
+            Collection<CertificationStatus> statuses
     );
 
     Optional<Certification> findTopByUserIdAndStatusInAndJudgedAtIsNotNullOrderByJudgedAtDesc(
