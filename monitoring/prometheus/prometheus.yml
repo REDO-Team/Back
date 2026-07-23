@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 30s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
+
+  - job_name: redo-spring
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - service-ec2:9101
+        labels:
+          application: redo-back
+          environment: production
+
+  - job_name: redo-node
+    static_configs:
+      - targets:
+          - service-ec2:9100
+        labels:
+          environment: production
+
+  - job_name: redo-redis
+    static_configs:
+      - targets:
+          - service-ec2:9121
+        labels:
+          environment: production
