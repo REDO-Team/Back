@@ -1,6 +1,7 @@
 package com.redo.domain.certification.entity;
 
 import com.redo.domain.certification.enums.AiJudgementResult;
+import com.redo.domain.certification.enums.CertificationFailureType;
 import com.redo.domain.certification.enums.CertificationSource;
 import com.redo.domain.certification.enums.CertificationStatus;
 import com.redo.domain.recycleGuide.entity.RecycleGuide;
@@ -38,8 +39,8 @@ public class Certification extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "guide_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "guide_id")
     private RecycleGuide recycleGuide;
 
     @Column(name = "image_key", nullable = false, length = 500)
@@ -62,48 +63,105 @@ public class Certification extends BaseEntity {
     @Column(name = "judged_at")
     private LocalDateTime judgedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "failure_type", length = 50)
+    private CertificationFailureType failureType;
+
     public static Certification create(
             User user,
             RecycleGuide recycleGuide,
             String imageKey,
-            CertificationSource certificationSource,
-            Integer rewardPoint
+            CertificationSource certificationSource
     ) {
-        Certification certification = new Certification();
-        certification.user = Objects.requireNonNull(user, "user must not be null");
-        certification.recycleGuide = Objects.requireNonNull(recycleGuide, "recycleGuide must not be null");
-        certification.imageKey = requireText(imageKey, "imageKey");
-        certification.certificationSource = Objects.requireNonNull(
+        CertificationSource requiredSource = Objects.requireNonNull(
                 certificationSource,
                 "certificationSource must not be null"
         );
-        certification.rewardPoint = requireNonNegative(rewardPoint, "rewardPoint");
+        Certification certification = new Certification();
+        certification.user = Objects.requireNonNull(user, "user must not be null");
+        certification.recycleGuide = validateRecycleGuide(requiredSource, recycleGuide);
+        certification.imageKey = requireText(imageKey, "imageKey");
+        certification.certificationSource = requiredSource;
+        certification.rewardPoint = requiredSource.rewardPoint();
         certification.status = CertificationStatus.PROCESSING;
         certification.attemptCount = 1;
         return certification;
+    }
+
+    public void assignRecycleGuide(RecycleGuide recycleGuide) {
+        if (certificationSource != CertificationSource.GENERAL) {
+            throw new IllegalStateException("Only general certifications can assign a classified recycle guide");
+        }
+        if (status != CertificationStatus.PROCESSING) {
+            throw new IllegalStateException("Recycle guide can only be assigned while processing");
+        }
+        if (this.recycleGuide != null) {
+            throw new IllegalStateException("Recycle guide has already been assigned");
+        }
+
+        this.recycleGuide = Objects.requireNonNull(recycleGuide, "recycleGuide must not be null");
     }
 
     public void complete(AiJudgementResult result, LocalDateTime judgedAt) {
         if (status != CertificationStatus.PROCESSING) {
             throw new IllegalStateException("Only processing certifications can be completed");
         }
+        if (recycleGuide == null) {
+            throw new IllegalStateException("Recycle guide must be assigned before completion");
+        }
 
-        this.status = switch (Objects.requireNonNull(result, "result must not be null")) {
-            case PASS -> CertificationStatus.PASSED;
-            case FAIL -> CertificationStatus.FAILED;
-        };
+        AiJudgementResult requiredResult = Objects.requireNonNull(result, "result must not be null");
+        this.status = requiredResult == AiJudgementResult.PASS
+                ? CertificationStatus.PASSED
+                : CertificationStatus.FAILED;
+        this.failureType = requiredResult == AiJudgementResult.FAIL
+                ? CertificationFailureType.VLM_JUDGEMENT_FAILED
+                : null;
+        this.judgedAt = Objects.requireNonNull(judgedAt, "judgedAt must not be null");
+    }
+
+    public void rejectDuplicateGuide(LocalDateTime judgedAt) {
+        if (status != CertificationStatus.PROCESSING) {
+            throw new IllegalStateException("Only processing certifications can be rejected");
+        }
+        if (recycleGuide == null) {
+            throw new IllegalStateException("Recycle guide must be assigned before duplicate rejection");
+        }
+
+        this.status = CertificationStatus.FAILED;
+        this.failureType = CertificationFailureType.DUPLICATE_GUIDE_TODAY;
         this.judgedAt = Objects.requireNonNull(judgedAt, "judgedAt must not be null");
     }
 
     public void retry(String imageKey) {
-        if (status != CertificationStatus.FAILED) {
-            throw new IllegalStateException("Only failed certifications can be retried");
+        if (status != CertificationStatus.FAILED
+                || failureType != CertificationFailureType.VLM_JUDGEMENT_FAILED) {
+            throw new IllegalStateException("Only VLM judgement failures can be retried");
         }
 
         this.imageKey = requireText(imageKey, "imageKey");
         this.status = CertificationStatus.PROCESSING;
         this.attemptCount += 1;
         this.judgedAt = null;
+        this.failureType = null;
+    }
+
+    private static RecycleGuide validateRecycleGuide(
+            CertificationSource certificationSource,
+            RecycleGuide recycleGuide
+    ) {
+        CertificationSource requiredSource = Objects.requireNonNull(
+                certificationSource,
+                "certificationSource must not be null"
+        );
+
+        if (requiredSource == CertificationSource.AFTER_SEARCH) {
+            return Objects.requireNonNull(recycleGuide, "recycleGuide must not be null for AFTER_SEARCH");
+        }
+        if (recycleGuide != null) {
+            throw new IllegalArgumentException("recycleGuide must be null before GENERAL classification");
+        }
+        return null;
     }
 
     private static String requireText(String value, String fieldName) {
@@ -113,10 +171,4 @@ public class Certification extends BaseEntity {
         return value;
     }
 
-    private static Integer requireNonNegative(Integer value, String fieldName) {
-        if (value == null || value < 0) {
-            throw new IllegalArgumentException(fieldName + " must not be negative");
-        }
-        return value;
-    }
 }
