@@ -95,6 +95,7 @@ services:
     image: lscr.io/linuxserver/socket-proxy:3.4.2
     environment:
       CONTAINERS: "1"
+      NETWORKS: "1"
       EVENTS: "0"
       POST: "0"
     volumes:
