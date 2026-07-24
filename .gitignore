@@ -42,3 +42,7 @@ application-secret.yml
 .env
 .env.*
 !.env.example
+
+### 모니터링 인증서 및 인증정보 ###
+monitoring/alloy/certs/
+monitoring/loki-proxy/secrets/

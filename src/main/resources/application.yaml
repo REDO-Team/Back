@@ -62,5 +62,19 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
+management:
+  server:
+    port: 9101
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 app:
   base-url: http://13.209.188.93:8080
