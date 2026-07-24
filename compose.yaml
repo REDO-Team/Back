@@ -1,3 +1,9 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   app:
     build:
@@ -10,9 +16,14 @@ services:
       JAVA_TOOL_OPTIONS: -Xms128m -Xmx512m -Duser.timezone=Asia/Seoul
     ports:
       - "8080:8080"
+      - target: 9101
+        published: "9101"
+        host_ip: "${SERVICE_PRIVATE_IP:?SERVICE_PRIVATE_IP_required}"
+        protocol: tcp
     depends_on:
       redis:
         condition: service_healthy
+    logging: *default-logging
     restart: unless-stopped
 
   redis:
@@ -32,7 +43,75 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    logging: *default-logging
+    restart: unless-stopped
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.11.1
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($$|/)
+    ports:
+      - target: 9100
+        published: "9100"
+        host_ip: "${SERVICE_PRIVATE_IP:?SERVICE_PRIVATE_IP_required}"
+        protocol: tcp
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro,rslave
+      - /run/udev/data:/run/udev/data:ro
+    cpus: "0.15"
+    mem_limit: 64m
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    restart: unless-stopped
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.84.0
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - target: 9121
+        published: "9121"
+        host_ip: "${SERVICE_PRIVATE_IP:?SERVICE_PRIVATE_IP_required}"
+        protocol: tcp
+    depends_on:
+      redis:
+        condition: service_healthy
+    cpus: "0.10"
+    mem_limit: 64m
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.16.1
+    command:
+      - run
+      - --server.http.listen-addr=127.0.0.1:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    environment:
+      MONITORING_PRIVATE_IP: ${MONITORING_PRIVATE_IP:?MONITORING_PRIVATE_IP_required}
+      LOKI_TENANT_ID: ${LOKI_TENANT_ID:-redo}
+    volumes:
+      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    cpus: "0.20"
+    mem_limit: 128m
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
     restart: unless-stopped
 
 volumes:
   redis-data:
+  alloy-data:
