@@ -17,8 +17,9 @@ public class RecycleGuideConverter {
                 .toList();
 
         return RecycleGuideResponseDTO.GuideDetailDTO.builder()
+                .guideId(guide.getId())
                 .name(guide.getName())
-                .imageUrl(guide.getImageUrl())
+                .imageKey(guide.getImageKey())
                 .tip(guide.getTip())
                 .recycleCategory(guide.getRecycleCategory().getName())
                 .guideSteps(steps)

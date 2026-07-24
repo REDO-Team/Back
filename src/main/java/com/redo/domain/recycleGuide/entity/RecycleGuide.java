@@ -17,8 +17,8 @@ public class RecycleGuide extends BaseEntity {
     @Column(nullable = false, length = 50)
     private String name;
 
-    @Column(length = 500)
-    private String imageUrl;
+    @Column(name = "image_key", length = 500)
+    private String imageKey;
 
     @Column(columnDefinition = "TEXT")
     private String tip;
