@@ -50,12 +50,6 @@ services:
     mem_limit: 384m
     security_opt:
       - no-new-privileges:true
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:3100/ready | grep -q ready"]
-      interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
     logging: *default-logging
     restart: unless-stopped
 
@@ -77,7 +71,7 @@ services:
       prometheus:
         condition: service_healthy
       loki:
-        condition: service_healthy
+        condition: service_started
     cpus: "0.50"
     mem_limit: 256m
     security_opt:
