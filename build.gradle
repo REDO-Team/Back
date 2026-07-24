@@ -52,7 +52,20 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'gemini-integration'
+	}
+}
+
+tasks.register('geminiIntegrationTest', Test) {
+	description = 'Runs live Gemini API integration tests.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'gemini-integration'
+	}
+	shouldRunAfter tasks.named('test')
 }
 
 tasks.named('bootJar') {

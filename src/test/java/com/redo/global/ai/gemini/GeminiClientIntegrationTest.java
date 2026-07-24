@@ -1,5 +1,7 @@
 package com.redo.global.ai.gemini;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redo.TestcontainersConfiguration;
 import com.redo.global.ai.gemini.client.GeminiClient;
 import com.redo.global.ai.gemini.dto.GeminiMedia;
@@ -32,6 +34,9 @@ class GeminiClientIntegrationTest {
     @Autowired
     private GeminiClient geminiClient;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
     void generatesText() {
         GeminiResponse response = geminiClient.generate(
@@ -43,7 +48,7 @@ class GeminiClientIntegrationTest {
     }
 
     @Test
-    void generatesStructuredJsonFromImage() {
+    void generatesStructuredJsonFromImage() throws Exception {
         GeminiRequest request = new GeminiRequest(
                 "Respond only with JSON that matches the supplied schema.",
                 "Is an image attached?",
@@ -64,7 +69,10 @@ class GeminiClientIntegrationTest {
         );
 
         GeminiResponse response = geminiClient.generate(request);
+        JsonNode content = objectMapper.readTree(response.content());
 
-        assertThat(response.content()).contains("\"imageAttached\"");
+        assertThat(content.isObject()).isTrue();
+        assertThat(content.path("imageAttached").isBoolean()).isTrue();
+        assertThat(content.path("imageAttached").booleanValue()).isTrue();
     }
 }

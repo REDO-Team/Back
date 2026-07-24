@@ -69,7 +69,7 @@ class SpringAiGeminiClientTest {
                 """
                         {"result":"PASS","reason":"깨끗하게 분리배출되었습니다."}
                         """,
-                "gemini-2.5-flash",
+                "gemini-3.1-flash-lite",
                 100,
                 20,
                 120,
@@ -99,7 +99,7 @@ class SpringAiGeminiClientTest {
         GeminiResponse response = client.generate(request);
 
         assertThat(response.content()).contains("\"result\":\"PASS\"");
-        assertThat(response.model()).isEqualTo("gemini-2.5-flash");
+        assertThat(response.model()).isEqualTo("gemini-3.1-flash-lite");
         assertThat(response.promptTokens()).isEqualTo(100);
         assertThat(response.generationTokens()).isEqualTo(20);
         assertThat(response.totalTokens()).isEqualTo(120);
@@ -114,7 +114,7 @@ class SpringAiGeminiClientTest {
         assertThat(userMessage.getMedia()).hasSize(1);
 
         GoogleGenAiChatOptions options = (GoogleGenAiChatOptions) prompt.getOptions();
-        assertThat(options.getModel()).isEqualTo("gemini-2.5-flash");
+        assertThat(options.getModel()).isEqualTo("gemini-3.1-flash-lite");
         assertThat(options.getTemperature()).isEqualTo(0.1);
         assertThat(options.getMaxOutputTokens()).isEqualTo(512);
         assertThat(options.getResponseMimeType()).isEqualTo("application/json");
@@ -270,9 +270,8 @@ class SpringAiGeminiClientTest {
         return new GeminiProperties(
                 true,
                 apiKey,
-                "gemini-2.5-flash",
+                "gemini-3.1-flash-lite",
                 Duration.ofSeconds(1),
-                3,
                 2048,
                 4,
                 DataSize.ofMegabytes(10)

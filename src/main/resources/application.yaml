@@ -23,7 +23,7 @@ spring:
         api-key: ${GEMINI_API_KEY:local-disabled}
         chat:
           options:
-            model: ${GEMINI_MODEL:gemini-2.5-flash}
+            model: ${GEMINI_MODEL:gemini-3.1-flash-lite}
             max-output-tokens: ${GEMINI_MAX_OUTPUT_TOKENS:2048}
 
   servlet:
@@ -92,9 +92,8 @@ app:
     gemini:
       enabled: ${GEMINI_ENABLED:false}
       api-key: ${GEMINI_API_KEY:}
-      model: ${GEMINI_MODEL:gemini-2.5-flash}
+      model: ${GEMINI_MODEL:gemini-3.1-flash-lite}
       timeout: ${GEMINI_TIMEOUT:30s}
-      max-attempts: ${GEMINI_MAX_ATTEMPTS:3}
       max-output-tokens: ${GEMINI_MAX_OUTPUT_TOKENS:2048}
       max-media-count: ${GEMINI_MAX_MEDIA_COUNT:4}
       max-media-size: ${GEMINI_MAX_MEDIA_SIZE:10MB}

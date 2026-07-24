@@ -107,6 +107,22 @@ class GeminiRequestValidatorTest {
     }
 
     @Test
+    void rejectsNonFiniteTemperature() {
+        GeminiRequest request = new GeminiRequest(
+                null,
+                "사진을 검수해 줘",
+                List.of(),
+                false,
+                null,
+                null,
+                Double.NaN,
+                null
+        );
+
+        assertError(request, GeminiErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
     void requiresSchemaInJsonMode() {
         GeminiRequest request = new GeminiRequest(
                 null,
@@ -138,6 +154,28 @@ class GeminiRequestValidatorTest {
         assertError(request, GeminiErrorCode.INVALID_RESPONSE_SCHEMA);
     }
 
+    @Test
+    void rejectsScalarJsonSchema() {
+        assertError(jsonRequest("\"text\""), GeminiErrorCode.INVALID_RESPONSE_SCHEMA);
+    }
+
+    @Test
+    void rejectsJsonSchemaWithoutType() {
+        assertError(jsonRequest("{\"properties\":{}}"), GeminiErrorCode.INVALID_RESPONSE_SCHEMA);
+    }
+
+    @Test
+    void rejectsJsonSchemaWithUnsupportedType() {
+        assertError(jsonRequest("{\"type\":\"null\"}"), GeminiErrorCode.INVALID_RESPONSE_SCHEMA);
+    }
+
+    @Test
+    void acceptsArrayOutputSchemaDocument() {
+        assertThatCode(() -> validator.validate(jsonRequest(
+                "{\"type\":\"array\",\"items\":{\"type\":\"string\"}}"
+        ))).doesNotThrowAnyException();
+    }
+
     private void assertError(GeminiRequest request, GeminiErrorCode errorCode) {
         assertThatThrownBy(() -> validator.validate(request))
                 .isInstanceOf(GeminiException.class)
@@ -145,13 +183,25 @@ class GeminiRequestValidatorTest {
                 .isEqualTo(errorCode);
     }
 
+    private GeminiRequest jsonRequest(String responseSchema) {
+        return new GeminiRequest(
+                null,
+                "JSON으로 답해 줘",
+                List.of(),
+                true,
+                responseSchema,
+                null,
+                null,
+                null
+        );
+    }
+
     private GeminiProperties properties() {
         return new GeminiProperties(
                 true,
                 "test-api-key",
-                "gemini-2.5-flash",
+                "gemini-3.1-flash-lite",
                 Duration.ofSeconds(1),
-                3,
                 2048,
                 4,
                 DataSize.ofMegabytes(10)
