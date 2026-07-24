@@ -38,16 +38,33 @@ services:
     image: grafana/loki:3.7.2
     command:
       - -config.file=/etc/loki/loki.yaml
-    ports:
-      - target: 3100
-        published: "3100"
-        host_ip: "${MONITORING_PRIVATE_IP:?MONITORING_PRIVATE_IP_required}"
-        protocol: tcp
     volumes:
       - ./loki/loki.yaml:/etc/loki/loki.yaml:ro
       - loki-data:/loki
     cpus: "0.75"
     mem_limit: 384m
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    restart: unless-stopped
+
+  loki-proxy:
+    image: nginx:1.30.4-alpine
+    ports:
+      - target: 8443
+        published: "3100"
+        host_ip: "${MONITORING_PRIVATE_IP:?MONITORING_PRIVATE_IP_required}"
+        protocol: tcp
+    volumes:
+      - ./loki-proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./loki-proxy/secrets/server.crt:/etc/nginx/tls/server.crt:ro
+      - ./loki-proxy/secrets/server.key:/etc/nginx/tls/server.key:ro
+      - ./loki-proxy/secrets/.htpasswd:/etc/nginx/auth/.htpasswd:ro
+    depends_on:
+      loki:
+        condition: service_started
+    cpus: "0.10"
+    mem_limit: 64m
     security_opt:
       - no-new-privileges:true
     logging: *default-logging

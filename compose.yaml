@@ -91,6 +91,26 @@ services:
     logging: *default-logging
     restart: unless-stopped
 
+  docker-socket-proxy:
+    image: lscr.io/linuxserver/socket-proxy:3.4.2
+    environment:
+      CONTAINERS: "1"
+      EVENTS: "0"
+      POST: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-api
+    cpus: "0.10"
+    mem_limit: 64m
+    read_only: true
+    tmpfs:
+      - /run
+    security_opt:
+      - no-new-privileges:true
+    logging: *default-logging
+    restart: unless-stopped
+
   alloy:
     image: grafana/alloy:v1.16.1
     command:
@@ -101,10 +121,18 @@ services:
     environment:
       MONITORING_PRIVATE_IP: ${MONITORING_PRIVATE_IP:?MONITORING_PRIVATE_IP_required}
       LOKI_TENANT_ID: ${LOKI_TENANT_ID:-redo}
+      LOKI_BASIC_AUTH_USERNAME: ${LOKI_BASIC_AUTH_USERNAME:?LOKI_BASIC_AUTH_USERNAME_required}
+      LOKI_BASIC_AUTH_PASSWORD: ${LOKI_BASIC_AUTH_PASSWORD:?LOKI_BASIC_AUTH_PASSWORD_required}
     volumes:
       - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/alloy/certs/loki-ca.crt:/etc/alloy/certs/loki-ca.crt:ro
       - alloy-data:/var/lib/alloy/data
+    depends_on:
+      docker-socket-proxy:
+        condition: service_started
+    networks:
+      - default
+      - docker-api
     cpus: "0.20"
     mem_limit: 128m
     security_opt:
@@ -115,3 +143,7 @@ services:
 volumes:
   redis-data:
   alloy-data:
+
+networks:
+  docker-api:
+    internal: true

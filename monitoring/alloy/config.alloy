@@ -4,7 +4,7 @@ logging {
 }
 
 discovery.docker "containers" {
-  host = "unix:///var/run/docker.sock"
+  host = "tcp://docker-socket-proxy:2375"
 }
 
 discovery.relabel "container_logs" {
@@ -23,7 +23,7 @@ discovery.relabel "container_logs" {
 }
 
 loki.source.docker "containers" {
-  host          = "unix:///var/run/docker.sock"
+  host          = "tcp://docker-socket-proxy:2375"
   targets       = discovery.docker.containers.targets
   labels        = {
     environment = "production",
@@ -36,7 +36,17 @@ loki.source.docker "containers" {
 
 loki.write "monitoring" {
   endpoint {
-    url       = "http://" + sys.env("MONITORING_PRIVATE_IP") + ":3100/loki/api/v1/push"
+    url       = "https://" + sys.env("MONITORING_PRIVATE_IP") + ":3100/loki/api/v1/push"
     tenant_id = sys.env("LOKI_TENANT_ID")
+
+    basic_auth {
+      username = sys.env("LOKI_BASIC_AUTH_USERNAME")
+      password = sys.env("LOKI_BASIC_AUTH_PASSWORD")
+    }
+
+    tls_config {
+      ca_file     = "/etc/alloy/certs/loki-ca.crt"
+      min_version = "TLS12"
+    }
   }
 }
