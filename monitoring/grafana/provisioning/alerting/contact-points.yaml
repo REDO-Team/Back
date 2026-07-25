@@ -1,0 +1,14 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: ReDO Discord
+    receivers:
+      - uid: redo-discord
+        type: discord
+        disableResolveMessage: false
+        settings:
+          url: $GRAFANA_ALERT_DISCORD_WEBHOOK_URL
+          use_discord_username: false
+          message: |
+            {{ template "default.message" . }}

@@ -1,0 +1,372 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: ReDO Availability
+    folder: ReDO Alerts
+    interval: 30s
+    rules:
+      - uid: redo-spring-down
+        title: Spring Boot target down
+        condition: B
+        dashboardUid: redo-operations-overview
+        panelId: 1
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: up{job="redo-spring"}
+              instant: true
+              intervalMs: 1000
+              legendFormat: "{{instance}}"
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        noDataState: Alerting
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: ReDO Spring Boot 메트릭 수집이 중단되었습니다.
+          description: Prometheus가 Service EC2의 Spring Boot Actuator에 2분 이상 접근하지 못했습니다.
+        labels:
+          environment: production
+          service: spring-boot
+          severity: critical
+        isPaused: false
+
+      - uid: redo-node-down
+        title: Service EC2 target down
+        condition: B
+        dashboardUid: redo-operations-overview
+        panelId: 1
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: up{job="redo-node"}
+              instant: true
+              intervalMs: 1000
+              legendFormat: "{{instance}}"
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        noDataState: Alerting
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: ReDO Service EC2 메트릭 수집이 중단되었습니다.
+          description: Prometheus가 Node Exporter에 2분 이상 접근하지 못했습니다.
+        labels:
+          environment: production
+          service: service-ec2
+          severity: critical
+        isPaused: false
+
+      - uid: redo-redis-down
+        title: Redis target down
+        condition: B
+        dashboardUid: redo-operations-overview
+        panelId: 1
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: up{job="redo-redis"}
+              instant: true
+              intervalMs: 1000
+              legendFormat: "{{instance}}"
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1
+                    type: lt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        noDataState: Alerting
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: ReDO Redis 메트릭 수집이 중단되었습니다.
+          description: Prometheus가 Redis Exporter에 2분 이상 접근하지 못했습니다.
+        labels:
+          environment: production
+          service: redis
+          severity: critical
+        isPaused: false
+
+  - orgId: 1
+    name: ReDO Service EC2 Resources
+    folder: ReDO Alerts
+    interval: 30s
+    rules:
+      - uid: redo-node-cpu-high
+        title: Service EC2 CPU usage high
+        condition: B
+        dashboardUid: redo-operations-overview
+        panelId: 3
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{job="redo-node",mode="idle"}[5m])) * 100)
+              instant: true
+              intervalMs: 1000
+              legendFormat: "{{instance}}"
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 85
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        noDataState: Alerting
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Service EC2 CPU 사용률이 높습니다.
+          description: Service EC2 CPU 사용률이 5분 이상 85%를 초과했습니다.
+        labels:
+          environment: production
+          service: service-ec2
+          severity: warning
+        isPaused: false
+
+      - uid: redo-node-memory-high
+        title: Service EC2 memory usage high
+        condition: B
+        dashboardUid: redo-operations-overview
+        panelId: 4
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: (1 - (node_memory_MemAvailable_bytes{job="redo-node"} / node_memory_MemTotal_bytes{job="redo-node"})) * 100
+              instant: true
+              intervalMs: 1000
+              legendFormat: "{{instance}}"
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 90
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        noDataState: Alerting
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Service EC2 메모리 사용률이 높습니다.
+          description: Service EC2 메모리 사용률이 5분 이상 90%를 초과했습니다.
+        labels:
+          environment: production
+          service: service-ec2
+          severity: warning
+        isPaused: false
+
+      - uid: redo-node-disk-high
+        title: Service EC2 root disk usage high
+        condition: B
+        dashboardUid: redo-operations-overview
+        panelId: 5
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 900
+              to: 0
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: (1 - (node_filesystem_avail_bytes{job="redo-node",mountpoint="/",fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{job="redo-node",mountpoint="/",fstype!~"tmpfs|overlay"})) * 100
+              instant: true
+              intervalMs: 1000
+              legendFormat: "{{instance}}"
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 85
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: B
+              type: classic_conditions
+        noDataState: Alerting
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: Service EC2 루트 디스크 사용률이 높습니다.
+          description: Service EC2 루트 디스크 사용률이 10분 이상 85%를 초과했습니다.
+        labels:
+          environment: production
+          service: service-ec2
+          severity: warning
+        isPaused: false
