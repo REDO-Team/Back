@@ -1,6 +1,8 @@
 package com.redo.domain.point.service;
 
+import com.redo.domain.certification.entity.Certification;
 import com.redo.domain.certification.enums.CertificationSource;
+import com.redo.domain.certification.repository.CertificationRepository;
 import com.redo.domain.point.converter.PointConverter;
 import com.redo.domain.point.dto.res.PointBalanceResponseDTO;
 import com.redo.domain.point.dto.res.PointTransactionResponseDTO;
@@ -35,6 +37,7 @@ public class PointService {
     private static final ZoneId SEOUL_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final PointTransactionRepository pointTransactionRepository;
+    private final CertificationRepository certificationRepository;
     private final UserRepository userRepository;
 
     // 포인트 조회 로직
@@ -81,12 +84,14 @@ public class PointService {
             return;
         }
 
+        Certification certification = getCertification(certificationId, userId);
+
         validateDailyEarnLimit(user);
         validatePointLimit(user, amount);
 
         PointTransaction transaction = PointTransaction.builder()
                 .user(user)
-                .certificationId(certificationId)
+                .certification(certification)
                 .transactionType(PointTransactionType.EARN)
                 .amount(amount)
                 .idempotencyKey(idempotencyKey)
@@ -135,6 +140,11 @@ public class PointService {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new PointException(PointErrorCode.INVALID_IDEMPOTENCY_KEY);
         }
+    }
+
+    private Certification getCertification(Long certificationId, Long userId) {
+        return certificationRepository.findByIdAndUserId(certificationId, userId)
+                .orElseThrow(() -> new PointException(PointErrorCode.CERTIFICATION_NOT_FOUND));
     }
 
     private User getUser(Long userId) {

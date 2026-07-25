@@ -1,5 +1,6 @@
 package com.redo.domain.point.entity;
 
+import com.redo.domain.certification.entity.Certification;
 import com.redo.domain.point.enums.PointTransactionType;
 import com.redo.domain.reward.entity.RewardRedemption;
 import com.redo.domain.user.entity.User;
@@ -29,9 +30,9 @@ public class PointTransaction extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    // Certification 엔티티 구현 전까지는 certificationId로 관리
-    @Column(name = "certification_id")
-    private Long certificationId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "certification_id")
+    private Certification certification;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reward_redemption_id")

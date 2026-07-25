@@ -14,6 +14,8 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
 
     boolean existsByUserIdAndStatus(Long userId, CertificationStatus status);
 
+    long countByUserIdAndStatus(Long userId, CertificationStatus status);
+
     long countByUserIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
             Long userId,
             CertificationStatus status,
