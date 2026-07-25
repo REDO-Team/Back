@@ -16,6 +16,7 @@ import com.redo.domain.community.exception.code.CommunityErrorCode;
 import com.redo.domain.community.exception.code.CommunitySuccessCode;
 import com.redo.domain.community.service.CommunityService;
 import com.redo.global.apiPayload.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "커뮤니티", description = "커뮤니티 게시글, 댓글 및 좋아요 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/community")

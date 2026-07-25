@@ -31,8 +31,6 @@ import java.time.ZoneId;
 @Transactional(readOnly = true)
 public class PointService {
 
-    private static final int GENERAL_CERTIFICATION_POINT = 50;
-    private static final int AFTER_SEARCH_CERTIFICATION_POINT = 100;
     private static final int DAILY_EARN_LIMIT = 3;
     private static final ZoneId SEOUL_ZONE_ID = ZoneId.of("Asia/Seoul");
 
@@ -76,7 +74,6 @@ public class PointService {
             String idempotencyKey
     ) {
         validateEarnPoint(certificationSource, idempotencyKey);
-        int amount = resolveEarnAmount(certificationSource);
 
         User user = getUserForUpdate(userId);
 
@@ -85,6 +82,8 @@ public class PointService {
         }
 
         Certification certification = getCertification(certificationId, userId);
+        validateCertificationSource(certification, certificationSource);
+        int amount = certification.getRewardPoint();
 
         validateDailyEarnLimit(user);
         validatePointLimit(user, amount);
@@ -99,13 +98,6 @@ public class PointService {
 
         pointTransactionRepository.save(transaction);
         user.addPoint(amount);
-    }
-
-    private int resolveEarnAmount(CertificationSource certificationSource) {
-        return switch (certificationSource) {
-            case GENERAL -> GENERAL_CERTIFICATION_POINT;
-            case AFTER_SEARCH -> AFTER_SEARCH_CERTIFICATION_POINT;
-        };
     }
 
     private void validateDailyEarnLimit(User user) {
@@ -139,6 +131,15 @@ public class PointService {
 
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new PointException(PointErrorCode.INVALID_IDEMPOTENCY_KEY);
+        }
+    }
+
+    private void validateCertificationSource(
+            Certification certification,
+            CertificationSource certificationSource
+    ) {
+        if (certification.getCertificationSource() != certificationSource) {
+            throw new PointException(PointErrorCode.INVALID_CERTIFICATION_SOURCE);
         }
     }
 
