@@ -239,7 +239,7 @@ groups:
               maxDataPoints: 43200
               refId: B
               type: classic_conditions
-        noDataState: Normal
+        noDataState: OK
         execErrState: Error
         for: 5m
         annotations:
@@ -299,7 +299,7 @@ groups:
               maxDataPoints: 43200
               refId: B
               type: classic_conditions
-        noDataState: Normal
+        noDataState: OK
         execErrState: Error
         for: 5m
         annotations:
@@ -359,7 +359,7 @@ groups:
               maxDataPoints: 43200
               refId: B
               type: classic_conditions
-        noDataState: Normal
+        noDataState: OK
         execErrState: Error
         for: 10m
         annotations:
