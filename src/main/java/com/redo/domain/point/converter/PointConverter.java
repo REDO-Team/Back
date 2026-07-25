@@ -23,7 +23,7 @@ public class PointConverter {
                 resolveTitle(transaction),
                 transaction.getTransactionType(),
                 transaction.getAmount(),
-                transaction.getCertificationId(),
+                transaction.getCertification() == null ? null : transaction.getCertification().getId(),
                 transaction.getRewardRedemption() == null ? null : transaction.getRewardRedemption().getId(),
                 transaction.getCreatedAt()
         );

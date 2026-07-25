@@ -9,6 +9,7 @@ import com.redo.domain.user.exception.AuthSuccessCode;
 import com.redo.global.apiPayload.ApiResponse;
 import com.redo.global.apiPayload.exception.GeneralException;
 import com.redo.global.security.JwtUtil;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 
+@Tag(name = "회원가입, 로그인", description = "회원가입, 로그인 및 토큰 관리 API")
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor

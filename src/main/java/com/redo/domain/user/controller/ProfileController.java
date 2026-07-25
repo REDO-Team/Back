@@ -8,11 +8,13 @@ import com.redo.domain.user.service.ProfileService;
 import com.redo.global.apiPayload.ApiResponse;
 import com.redo.global.apiPayload.exception.GeneralException;
 import com.redo.global.security.JwtUtil;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+@Tag(name = "프로필", description = "사용자 프로필 조회 및 관리 API")
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor

@@ -8,6 +8,7 @@ import com.redo.domain.user.service.WithdrawalService;
 import com.redo.global.apiPayload.ApiResponse;
 import com.redo.global.apiPayload.exception.GeneralException;
 import com.redo.global.security.JwtUtil;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "회원탈퇴", description = "회원탈퇴 사유 조회 및 회원탈퇴 API")
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor

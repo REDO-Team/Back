@@ -36,7 +36,11 @@ public enum PointErrorCode implements BaseErrorCode {
 
     DAILY_EARN_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST,
             "POINT_400_007",
-            "하루 최대 3번까지 포인트를 적립할 수 있습니다.");
+            "하루 최대 3번까지 포인트를 적립할 수 있습니다."),
+
+    CERTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "POINT_404_001",
+            "포인트 적립 대상 인증을 찾을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
