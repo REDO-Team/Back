@@ -9,6 +9,8 @@ import com.redo.global.ai.gemini.client.GeminiClient;
 import com.redo.global.ai.gemini.dto.GeminiMedia;
 import com.redo.global.ai.gemini.dto.GeminiRequest;
 import com.redo.global.ai.gemini.dto.GeminiResponse;
+import com.redo.global.apiPayload.exception.GeneralException;
+import com.redo.global.ai.gemini.exception.code.GeminiErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,7 +31,16 @@ public class RecycleGuideAiService {
 
     public ImageSearchResultDTO searchGuideByImage(MultipartFile image) {
         if (image == null || image.isEmpty()) {
-            throw new IllegalArgumentException("이미지 파일이 비어있습니다.");
+            throw new GeneralException(GeminiErrorCode.EMPTY_FILE);
+        }
+
+        String contentType = image.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new GeneralException(GeminiErrorCode.INVALID_IMAGE_TYPE);
+        }
+
+        if (image.getSize() > 10 * 1024 * 1024) {
+            throw new GeneralException(GeminiErrorCode.FILE_SIZE_EXCEEDED);
         }
 
         List<String> validNames = recycleGuideRepository.findAllNames();
@@ -67,28 +78,12 @@ public class RecycleGuideAiService {
 
         GeminiResponse response = geminiClient.generate(request);
 
+        String identifiedName;
+        String reason;
         try {
             JsonNode resultNode = objectMapper.readTree(response.content());
-            String identifiedName = resultNode.path("name").asText();
-            String reason = resultNode.path("reason").asText();
-
-            // 'NOT_FOUND' 거나 결과가 우리 DB에 없는 이름일 경우 식별 실패로 간주
-            if ("NOT_FOUND".equals(identifiedName) || identifiedName.isBlank() || !validNames.contains(identifiedName)) {
-                return ImageSearchResultDTO.builder()
-                        .isIdentified(false)
-                        .reason(reason)
-                        .guideDetail(null)
-                        .build();
-            }
-
-            GuideDetailDTO guideDetail = recycleGuideService.getGuideByName(identifiedName);
-
-            return ImageSearchResultDTO.builder()
-                    .isIdentified(true)
-                    .reason(reason)
-                    .guideDetail(guideDetail)
-                    .build();
-
+            identifiedName = resultNode.path("name").asText();
+            reason = resultNode.path("reason").asText();
         } catch (Exception e) {
             log.error("Failed to parse Gemini response: {}", response.content(), e);
             return ImageSearchResultDTO.builder()
@@ -97,5 +92,22 @@ public class RecycleGuideAiService {
                     .guideDetail(null)
                     .build();
         }
+
+        // 'NOT_FOUND' 거나 결과가 우리 DB에 없는 이름일 경우 식별 실패로 간주
+        if ("NOT_FOUND".equals(identifiedName) || identifiedName.isBlank() || !validNames.contains(identifiedName)) {
+            return ImageSearchResultDTO.builder()
+                    .isIdentified(false)
+                    .reason(reason)
+                    .guideDetail(null)
+                    .build();
+        }
+
+        GuideDetailDTO guideDetail = recycleGuideService.getGuideByName(identifiedName);
+
+        return ImageSearchResultDTO.builder()
+                .isIdentified(true)
+                .reason(reason)
+                .guideDetail(guideDetail)
+                .build();
     }
 }

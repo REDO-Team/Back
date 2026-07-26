@@ -20,6 +20,21 @@ public enum GeminiErrorCode implements BaseErrorCode {
             "GEMINI_400_002",
             "Gemini 응답 스키마가 올바르지 않습니다."
     ),
+    EMPTY_FILE(
+            HttpStatus.BAD_REQUEST,
+            "GEMINI_400_003",
+            "분석할 이미지 파일이 비어 있습니다."
+    ),
+    INVALID_IMAGE_TYPE(
+            HttpStatus.BAD_REQUEST,
+            "GEMINI_400_004",
+            "지원하지 않는 이미지 형식입니다."
+    ),
+    FILE_SIZE_EXCEEDED(
+            HttpStatus.PAYLOAD_TOO_LARGE,
+            "GEMINI_413_001",
+            "이미지는 10MB 이하만 분석할 수 있습니다."
+    ),
     AUTHENTICATION_FAILED(
             HttpStatus.UNAUTHORIZED,
             "GEMINI_401_001",
