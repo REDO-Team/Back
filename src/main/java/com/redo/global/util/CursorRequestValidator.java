@@ -5,7 +5,6 @@ import java.util.function.Supplier;
 public final class CursorRequestValidator {
 
     public static final int MAX_PAGE_SIZE = 50;
-    public static final int CONTRIBUTION_MAX_PAGE_SIZE = 20;
     private static final int MIN_PAGE_SIZE = 1;
 
     private CursorRequestValidator() {

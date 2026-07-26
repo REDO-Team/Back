@@ -51,7 +51,6 @@ public class ContributionController {
         CursorRequestValidator.validate(
                 cursor,
                 size,
-                CursorRequestValidator.CONTRIBUTION_MAX_PAGE_SIZE,
                 () -> new ContributionException(
                         ContributionErrorCode.INVALID_CURSOR_REQUEST
                 )
