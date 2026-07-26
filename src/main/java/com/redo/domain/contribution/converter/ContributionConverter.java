@@ -1,8 +1,8 @@
 package com.redo.domain.contribution.converter;
 
+import com.redo.domain.contribution.dto.cache.ContributionEventCacheDTO;
 import com.redo.domain.contribution.dto.res.MyContributionResponseDTO;
 import com.redo.domain.contribution.dto.res.OverallContributionResponseDTO;
-import com.redo.domain.contribution.dto.cache.ContributionEventCacheDTO;
 import com.redo.domain.contribution.enums.ContributionMilestone;
 import com.redo.domain.contribution.enums.ContributionMilestoneStatus;
 import com.redo.domain.user.entity.UserProfile;
@@ -79,9 +79,7 @@ public class ContributionConverter {
             ContributionMilestone type,
             long totalCertificationCount
     ) {
-        return Arrays.stream(ContributionMilestone.values())
-                .filter(candidate -> totalCertificationCount < candidate.requiredCount())
-                .findFirst()
+        return ContributionMilestone.next(totalCertificationCount)
                 .map(candidate -> candidate == type)
                 .orElse(false);
     }

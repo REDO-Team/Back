@@ -22,6 +22,12 @@ public enum ContributionErrorCode implements BaseErrorCode {
             "성공한 인증만 기여도 이벤트로 등록할 수 있습니다."
     ),
 
+    DUPLICATE_CONTRIBUTION_EVENT(
+            HttpStatus.CONFLICT,
+            "CONTRIBUTION_409_001",
+            "이미 기여도 이벤트가 등록된 인증입니다."
+    ),
+
     CONTRIBUTION_NOT_FOUND(
             HttpStatus.NOT_FOUND,
             "CONTRIBUTION_404_001",

@@ -7,6 +7,7 @@ import com.redo.domain.point.exception.code.PointErrorCode;
 import com.redo.domain.point.exception.code.PointSuccessCode;
 import com.redo.domain.point.service.PointService;
 import com.redo.global.apiPayload.ApiResponse;
+import com.redo.global.util.CursorRequestValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/rewards/points")
 @Tag(name = "포인트", description = "사용자 포인트 및 거래 내역 조회 API")
 public class PointController {
-
-    private static final int MIN_PAGE_SIZE = 1;
-    private static final int MAX_PAGE_SIZE = 50;
 
     private final PointService pointService;
 
@@ -45,18 +43,14 @@ public class PointController {
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "10") int size
     ) {
-        validateCursorRequest(cursor, size);
+        CursorRequestValidator.validate(
+                cursor,
+                size,
+                () -> new PointException(PointErrorCode.INVALID_CURSOR_REQUEST)
+        );
 
         return ApiResponse.onSuccess(PointSuccessCode.GET_POINT_TRANSACTIONS_SUCCESS,
                 pointService.getMyPointTransactions(userId, cursor, size)
         );
-    }
-
-    private void validateCursorRequest(Long cursor, int size) {
-        if ((cursor != null && cursor <= 0)
-                || size < MIN_PAGE_SIZE
-                || size > MAX_PAGE_SIZE) {
-            throw new PointException(PointErrorCode.INVALID_CURSOR_REQUEST);
-        }
     }
 }

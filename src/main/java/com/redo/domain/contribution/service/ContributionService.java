@@ -19,6 +19,7 @@ import com.redo.domain.user.repository.UserProfileRepository;
 import com.redo.domain.user.repository.UserRepository;
 import com.redo.global.s3.service.S3Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +64,7 @@ public class ContributionService {
         );
     }
 
-    // 전체 기여도 피드 커서 조회 로직
+    // 전체 기여도 조회 로직
     public OverallContributionResponseDTO getOverallContribution(Long cursor, int size) {
         int querySize = size + 1;
         List<ContributionEventCacheDTO> events = getFeedEvents(cursor, querySize);
@@ -127,7 +128,8 @@ public class ContributionService {
                 certification.getUser().getId(),
                 CertificationStatus.PASSED
         );
-        ContributionMilestone nextMilestone = findNextMilestone(certificationCount);
+        ContributionMilestone nextMilestone = ContributionMilestone.next(certificationCount)
+                .orElse(null);
         ContributionType eventType = resolveContributionType(
                 certificationCount,
                 nextMilestone
@@ -138,17 +140,23 @@ public class ContributionService {
         boolean showRemainingCount = eventType == ContributionType.REWARD_PROGRESS
                 && shouldShowRemainingCount(certificationCount, nextMilestone);
 
-        return contributionEventRepository.save(
-                ContributionEvent.create(
-                        certification.getUser(),
-                        certification,
-                        eventType,
-                        certificationCount,
-                        eventType == ContributionType.REWARD_PROGRESS ? nextMilestone : null,
-                        eventType == ContributionType.REWARD_PROGRESS ? remainingCount : null,
-                        showRemainingCount
-                )
-        );
+        try {
+            return contributionEventRepository.saveAndFlush(
+                    ContributionEvent.create(
+                            certification.getUser(),
+                            certification,
+                            eventType,
+                            certificationCount,
+                            eventType == ContributionType.REWARD_PROGRESS ? nextMilestone : null,
+                            eventType == ContributionType.REWARD_PROGRESS ? remainingCount : null,
+                            showRemainingCount
+                    )
+            );
+        } catch (DataIntegrityViolationException exception) {
+            throw new ContributionException(
+                    ContributionErrorCode.DUPLICATE_CONTRIBUTION_EVENT
+            );
+        }
     }
 
     private List<ContributionEventCacheDTO> getFeedEvents(
@@ -235,10 +243,11 @@ public class ContributionService {
             UserProfile userProfile,
             Map<String, String> profileImageUrls
     ) {
-        if (userProfile.getProfileImageKey() == null) {
+        String profileImageKey = userProfile.getProfileImageKey();
+        if (profileImageKey == null || profileImageKey.isBlank()) {
             return userProfile.getCharacterCode();
         }
-        return profileImageUrls.get(userProfile.getProfileImageKey());
+        return profileImageUrls.get(profileImageKey);
     }
 
     private ContributionType resolveContributionType(
@@ -266,12 +275,5 @@ public class ContributionService {
         int interval = nextMilestone.requiredCount() - previousRequiredCount;
         long remainingCount = nextMilestone.requiredCount() - certificationCount;
         return remainingCount * 2 <= interval;
-    }
-
-    private ContributionMilestone findNextMilestone(long certificationCount) {
-        return Arrays.stream(ContributionMilestone.values())
-                .filter(milestone -> certificationCount < milestone.requiredCount())
-                .findFirst()
-                .orElse(null);
     }
 }

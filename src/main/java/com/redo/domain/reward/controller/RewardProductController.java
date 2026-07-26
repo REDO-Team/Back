@@ -8,6 +8,7 @@ import com.redo.domain.reward.exception.code.RewardErrorCode;
 import com.redo.domain.reward.exception.code.RewardSuccessCode;
 import com.redo.domain.reward.service.RewardProductService;
 import com.redo.global.apiPayload.ApiResponse;
+import com.redo.global.util.CursorRequestValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "리워드 상품", description = "리워드 상품 조회, 구매 및 구매 내역 API")
 public class RewardProductController {
 
-    private static final int MIN_PAGE_SIZE = 1;
-    private static final int MAX_PAGE_SIZE = 50;
-
     private final RewardProductService rewardProductService;
 
     @GetMapping
@@ -38,7 +36,11 @@ public class RewardProductController {
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "10") int size
     ) {
-        validateCursorRequest(cursor, size);
+        CursorRequestValidator.validate(
+                cursor,
+                size,
+                () -> new RewardException(RewardErrorCode.INVALID_CURSOR_REQUEST)
+        );
 
         return ApiResponse.onSuccess(
                 RewardSuccessCode.GET_REWARD_PRODUCTS_SUCCESS,
@@ -55,13 +57,5 @@ public class RewardProductController {
                 RewardSuccessCode.GET_REWARD_PRODUCT_SUCCESS,
                 rewardProductService.getRewardProduct(rewardProductId)
         );
-    }
-
-    private void validateCursorRequest(Long cursor, int size) {
-        if ((cursor != null && cursor <= 0)
-                || size < MIN_PAGE_SIZE
-                || size > MAX_PAGE_SIZE) {
-            throw new RewardException(RewardErrorCode.INVALID_CURSOR_REQUEST);
-        }
     }
 }

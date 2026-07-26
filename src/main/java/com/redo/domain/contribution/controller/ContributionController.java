@@ -7,6 +7,7 @@ import com.redo.domain.contribution.exception.code.ContributionErrorCode;
 import com.redo.domain.contribution.exception.code.ContributionSuccessCode;
 import com.redo.domain.contribution.service.ContributionService;
 import com.redo.global.apiPayload.ApiResponse;
+import com.redo.global.util.CursorRequestValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/contributions")
 public class ContributionController {
-
-    private static final int MIN_PAGE_SIZE = 1;
-    private static final int MAX_PAGE_SIZE = 20;
 
     private final ContributionService contributionService;
 
@@ -50,21 +48,18 @@ public class ContributionController {
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "10") int size
     ) {
-        validateCursorRequest(cursor, size);
+        CursorRequestValidator.validate(
+                cursor,
+                size,
+                CursorRequestValidator.CONTRIBUTION_MAX_PAGE_SIZE,
+                () -> new ContributionException(
+                        ContributionErrorCode.INVALID_CURSOR_REQUEST
+                )
+        );
 
         return ApiResponse.onSuccess(
                 ContributionSuccessCode.GET_OVERALL_CONTRIBUTION_SUCCESS,
                 contributionService.getOverallContribution(cursor, size)
         );
-    }
-
-    private void validateCursorRequest(Long cursor, int size) {
-        if ((cursor != null && cursor <= 0)
-                || size < MIN_PAGE_SIZE
-                || size > MAX_PAGE_SIZE) {
-            throw new ContributionException(
-                    ContributionErrorCode.INVALID_CURSOR_REQUEST
-            );
-        }
     }
 }
