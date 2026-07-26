@@ -6,7 +6,8 @@ import com.redo.domain.point.dto.res.PointTransactionResponseDTO;
 import com.redo.domain.point.entity.PointTransaction;
 import com.redo.domain.point.enums.PointTransactionType;
 import com.redo.domain.user.entity.User;
-import org.springframework.data.domain.Page;
+
+import java.util.List;
 
 public class PointConverter {
 
@@ -43,13 +44,14 @@ public class PointConverter {
     }
 
     public static PointTransactionPageResponseDTO toPointTransactionPageResponse(
-            Page<PointTransactionResponseDTO> page
+            List<PointTransactionResponseDTO> items,
+            Long nextCursor,
+            boolean hasNext
     ) {
         return new PointTransactionPageResponseDTO(
-                page.getContent(),
-                page.getNumber(),
-                page.getSize(),
-                page.hasNext()
+                items,
+                nextCursor,
+                hasNext
         );
     }
 }

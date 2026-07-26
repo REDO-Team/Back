@@ -7,6 +7,7 @@ import com.redo.domain.point.exception.code.PointErrorCode;
 import com.redo.domain.point.repository.PointTransactionRepository;
 import com.redo.domain.reward.converter.RewardRedemptionConverter;
 import com.redo.domain.reward.dto.req.RewardRedemptionCreateRequestDTO;
+import com.redo.domain.reward.dto.res.RewardRedemptionHistoryPageResponseDTO;
 import com.redo.domain.reward.dto.res.RewardRedemptionHistoryResponseDTO;
 import com.redo.domain.reward.dto.res.RewardRedemptionResponseDTO;
 import com.redo.domain.reward.entity.RewardFulfillment;
@@ -31,10 +32,11 @@ import com.redo.domain.user.repository.UserRepository;
 import com.redo.global.apiPayload.exception.GeneralException;
 import com.redo.global.s3.service.S3Service;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -113,14 +115,41 @@ public class RewardRedemptionService {
     }
 
     // 로그인한 사용자의 리워드 상품 구매 내역 조회 로직
-    public Page<RewardRedemptionHistoryResponseDTO> getMyRedemptions(Long userId, Pageable pageable) {
+    public RewardRedemptionHistoryPageResponseDTO getMyRedemptions(
+            Long userId,
+            Long cursor,
+            int size
+    ) {
         User user = getUser(userId);
-
-        return rewardFulfillmentRepository.findPageByUserWithRedemptionAndProduct(user, pageable)
+        List<RewardFulfillment> fulfillments =
+                rewardFulfillmentRepository.findByUserWithRedemptionAndProduct(
+                        user,
+                        cursor,
+                        PageRequest.of(0, size + 1)
+                );
+        boolean hasNext = fulfillments.size() > size;
+        List<RewardFulfillment> pageFulfillments = hasNext
+                ? fulfillments.subList(0, size)
+                : fulfillments;
+        List<RewardRedemptionHistoryResponseDTO> content = pageFulfillments.stream()
                 .map(fulfillment -> RewardRedemptionConverter.toRewardRedemptionHistoryResponse(
                         fulfillment,
-                        createProductImageUrl(fulfillment.getRewardRedemption().getProductImageKey())
-                ));
+                        createProductImageUrl(
+                                fulfillment.getRewardRedemption().getProductImageKey()
+                        )
+                ))
+                .toList();
+        Long nextCursor = hasNext && !pageFulfillments.isEmpty()
+                ? pageFulfillments.get(pageFulfillments.size() - 1)
+                        .getRewardRedemption()
+                        .getId()
+                : null;
+
+        return RewardRedemptionConverter.toRewardRedemptionHistoryPageResponse(
+                content,
+                nextCursor,
+                hasNext
+        );
     }
 
     private Recipient resolveRecipient(

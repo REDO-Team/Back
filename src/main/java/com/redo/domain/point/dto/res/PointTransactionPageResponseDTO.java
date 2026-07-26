@@ -4,8 +4,7 @@ import java.util.List;
 
 public record PointTransactionPageResponseDTO(
         List<PointTransactionResponseDTO> items,
-        int page,
-        int size,
+        Long nextCursor,
         boolean hasNext
 ) {
 }

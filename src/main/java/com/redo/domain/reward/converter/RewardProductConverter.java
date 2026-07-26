@@ -4,7 +4,8 @@ import com.redo.domain.reward.dto.res.RewardProductDetailResponseDTO;
 import com.redo.domain.reward.dto.res.RewardProductPageResponseDTO;
 import com.redo.domain.reward.dto.res.RewardProductResponseDTO;
 import com.redo.domain.reward.entity.RewardProduct;
-import org.springframework.data.domain.Page;
+
+import java.util.List;
 
 public class RewardProductConverter {
 
@@ -44,12 +45,15 @@ public class RewardProductConverter {
         );
     }
 
-    public static RewardProductPageResponseDTO toRewardProductPageResponse(Page<RewardProductResponseDTO> page) {
+    public static RewardProductPageResponseDTO toRewardProductPageResponse(
+            List<RewardProductResponseDTO> items,
+            Long nextCursor,
+            boolean hasNext
+    ) {
         return new RewardProductPageResponseDTO(
-                page.getContent(),
-                page.getNumber(),
-                page.getSize(),
-                page.hasNext()
+                items,
+                nextCursor,
+                hasNext
         );
     }
 }

@@ -1,6 +1,5 @@
 package com.redo.domain.reward.controller;
 
-import com.redo.domain.reward.converter.RewardProductConverter;
 import com.redo.domain.reward.dto.res.RewardProductDetailResponseDTO;
 import com.redo.domain.reward.dto.res.RewardProductPageResponseDTO;
 import com.redo.domain.reward.enums.RewardProductType;
@@ -12,9 +11,6 @@ import com.redo.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,35 +23,26 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "리워드 상품", description = "리워드 상품 조회, 구매 및 구매 내역 API")
 public class RewardProductController {
 
-    private static final int MIN_PAGE = 0;
     private static final int MIN_PAGE_SIZE = 1;
     private static final int MAX_PAGE_SIZE = 50;
 
     private final RewardProductService rewardProductService;
 
     @GetMapping
-    @Operation(summary = "리워드 상품 목록 조회", description = "판매 가능한 리워드 상품을 유형별로 조회합니다.")
+    @Operation(
+            summary = "리워드 상품 목록 조회",
+            description = "판매 가능한 리워드 상품을 커서 기반으로 유형별 조회합니다."
+    )
     public ApiResponse<RewardProductPageResponseDTO> getRewardProducts(
             @RequestParam(required = false) RewardProductType rewardProductType,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "10") int size
     ) {
-        validatePageRequest(page, size);
-
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by(
-                        Sort.Order.desc("createdAt"),
-                        Sort.Order.desc("id")
-                )
-        );
+        validateCursorRequest(cursor, size);
 
         return ApiResponse.onSuccess(
                 RewardSuccessCode.GET_REWARD_PRODUCTS_SUCCESS,
-                RewardProductConverter.toRewardProductPageResponse(
-                        rewardProductService.getRewardProducts(rewardProductType, pageable)
-                )
+                rewardProductService.getRewardProducts(rewardProductType, cursor, size)
         );
     }
 
@@ -70,9 +57,11 @@ public class RewardProductController {
         );
     }
 
-    private void validatePageRequest(int page, int size) {
-        if (page < MIN_PAGE || size < MIN_PAGE_SIZE || size > MAX_PAGE_SIZE) {
-            throw new RewardException(RewardErrorCode.INVALID_PAGE_REQUEST);
+    private void validateCursorRequest(Long cursor, int size) {
+        if ((cursor != null && cursor <= 0)
+                || size < MIN_PAGE_SIZE
+                || size > MAX_PAGE_SIZE) {
+            throw new RewardException(RewardErrorCode.INVALID_CURSOR_REQUEST);
         }
     }
 }

@@ -6,7 +6,7 @@ import com.redo.domain.point.exception.PointException;
 import com.redo.domain.point.exception.code.PointErrorCode;
 import com.redo.domain.point.repository.PointTransactionRepository;
 import com.redo.domain.reward.dto.req.RewardRedemptionCreateRequestDTO;
-import com.redo.domain.reward.dto.res.RewardRedemptionHistoryResponseDTO;
+import com.redo.domain.reward.dto.res.RewardRedemptionHistoryPageResponseDTO;
 import com.redo.domain.reward.dto.res.RewardRedemptionResponseDTO;
 import com.redo.domain.reward.entity.RewardFulfillment;
 import com.redo.domain.reward.entity.RewardProduct;
@@ -32,10 +32,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -207,16 +204,18 @@ class RewardRedemptionServiceTest {
                 .rewardFulfillmentType(RewardFulfillmentType.DELIVERY)
                 .status(RewardFulfillmentStatus.READY)
                 .build();
-        Pageable pageable = PageRequest.of(0, 10);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(rewardFulfillmentRepository.findPageByUserWithRedemptionAndProduct(user, pageable))
-                .thenReturn(new PageImpl<>(List.of(fulfillment), pageable, 1));
+        when(rewardFulfillmentRepository.findByUserWithRedemptionAndProduct(
+                user,
+                null,
+                PageRequest.of(0, 11)
+        )).thenReturn(List.of(fulfillment));
         when(s3Service.createPresignedUrl(IMAGE_KEY)).thenReturn(IMAGE_URL);
 
-        Page<RewardRedemptionHistoryResponseDTO> result =
-                rewardRedemptionService.getMyRedemptions(1L, pageable);
+        RewardRedemptionHistoryPageResponseDTO result =
+                rewardRedemptionService.getMyRedemptions(1L, null, 10);
 
-        assertThat(result.getContent()).singleElement().satisfies(history -> {
+        assertThat(result.content()).singleElement().satisfies(history -> {
             assertThat(history.rewardRedemptionId()).isEqualTo(4L);
             assertThat(history.productImageUrl()).isEqualTo(IMAGE_URL);
             assertThat(history.fulfillmentType()).isEqualTo(RewardFulfillmentType.DELIVERY);

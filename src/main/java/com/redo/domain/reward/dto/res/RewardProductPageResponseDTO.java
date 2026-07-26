@@ -4,8 +4,7 @@ import java.util.List;
 
 public record RewardProductPageResponseDTO(
         List<RewardProductResponseDTO> items,
-        int page,
-        int size,
+        Long nextCursor,
         boolean hasNext
 ) {
 }

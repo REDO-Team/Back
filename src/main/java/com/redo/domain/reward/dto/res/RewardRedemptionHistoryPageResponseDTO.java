@@ -4,8 +4,7 @@ import java.util.List;
 
 public record RewardRedemptionHistoryPageResponseDTO(
         List<RewardRedemptionHistoryResponseDTO> content,
-        int page,
-        int size,
+        Long nextCursor,
         boolean hasNext
 ) {
 }

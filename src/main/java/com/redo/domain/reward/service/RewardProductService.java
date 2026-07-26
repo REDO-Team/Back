@@ -2,6 +2,7 @@ package com.redo.domain.reward.service;
 
 import com.redo.domain.reward.converter.RewardProductConverter;
 import com.redo.domain.reward.dto.res.RewardProductDetailResponseDTO;
+import com.redo.domain.reward.dto.res.RewardProductPageResponseDTO;
 import com.redo.domain.reward.dto.res.RewardProductResponseDTO;
 import com.redo.domain.reward.entity.RewardProduct;
 import com.redo.domain.reward.enums.RewardProductStatus;
@@ -11,10 +12,11 @@ import com.redo.domain.reward.exception.code.RewardErrorCode;
 import com.redo.domain.reward.repository.RewardProductRepository;
 import com.redo.global.s3.service.S3Service;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -27,27 +29,37 @@ public class RewardProductService {
     private final S3Service s3Service;
 
     // 상품 목록 조회 로직
-    public Page<RewardProductResponseDTO> getRewardProducts(
+    public RewardProductPageResponseDTO getRewardProducts(
             RewardProductType rewardProductType,
-            Pageable pageable
+            Long cursor,
+            int size
     ) {
-        Page<RewardProduct> rewardProducts = rewardProductType == null
-                ? rewardProductRepository.findByStatusAndStockQuantityGreaterThan(
-                        RewardProductStatus.ACTIVE,
-                        MIN_STOCK_QUANTITY,
-                        pageable
-                )
-                : rewardProductRepository.findByRewardProductTypeAndStatusAndStockQuantityGreaterThan(
-                        rewardProductType,
-                        RewardProductStatus.ACTIVE,
-                        MIN_STOCK_QUANTITY,
-                        pageable
-                );
+        List<RewardProduct> rewardProducts = rewardProductRepository.findAvailableProducts(
+                rewardProductType,
+                RewardProductStatus.ACTIVE,
+                MIN_STOCK_QUANTITY,
+                cursor,
+                PageRequest.of(0, size + 1)
+        );
+        boolean hasNext = rewardProducts.size() > size;
+        List<RewardProduct> pageProducts = hasNext
+                ? rewardProducts.subList(0, size)
+                : rewardProducts;
+        List<RewardProductResponseDTO> items = pageProducts.stream()
+                .map(rewardProduct -> RewardProductConverter.toRewardProductResponse(
+                        rewardProduct,
+                        createImageUrl(rewardProduct.getImageKey())
+                ))
+                .toList();
+        Long nextCursor = hasNext && !pageProducts.isEmpty()
+                ? pageProducts.get(pageProducts.size() - 1).getId()
+                : null;
 
-        return rewardProducts.map(rewardProduct -> RewardProductConverter.toRewardProductResponse(
-                rewardProduct,
-                createImageUrl(rewardProduct.getImageKey())
-        ));
+        return RewardProductConverter.toRewardProductPageResponse(
+                items,
+                nextCursor,
+                hasNext
+        );
     }
 
     // 상품 상세 조회 로직

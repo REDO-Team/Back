@@ -26,9 +26,9 @@ public enum PointErrorCode implements BaseErrorCode {
             "POINT_400_004",
             "보유 포인트 한도를 초과할 수 없습니다."),
 
-    INVALID_PAGE_REQUEST(HttpStatus.BAD_REQUEST,
+    INVALID_CURSOR_REQUEST(HttpStatus.BAD_REQUEST,
             "POINT_400_005",
-            "페이지 요청 값이 올바르지 않습니다."),
+            "커서 또는 조회 개수가 올바르지 않습니다."),
 
     INVALID_CERTIFICATION_SOURCE(HttpStatus.BAD_REQUEST,
             "POINT_400_006",

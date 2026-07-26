@@ -1,7 +1,7 @@
 package com.redo.domain.reward.service;
 
 import com.redo.domain.reward.dto.res.RewardProductDetailResponseDTO;
-import com.redo.domain.reward.dto.res.RewardProductResponseDTO;
+import com.redo.domain.reward.dto.res.RewardProductPageResponseDTO;
 import com.redo.domain.reward.entity.RewardProduct;
 import com.redo.domain.reward.enums.RewardProductStatus;
 import com.redo.domain.reward.enums.RewardProductType;
@@ -14,10 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -44,18 +41,20 @@ class RewardProductServiceTest {
 
     @Test
     void getRewardProductsCreatesPresignedImageUrl() {
-        Pageable pageable = PageRequest.of(0, 10);
         RewardProduct rewardProduct = createRewardProduct(RewardProductType.PARTNER_BRAND);
-        when(rewardProductRepository.findByStatusAndStockQuantityGreaterThan(
+        when(rewardProductRepository.findAvailableProducts(
+                null,
                 RewardProductStatus.ACTIVE,
                 0,
-                pageable
-        )).thenReturn(new PageImpl<>(List.of(rewardProduct), pageable, 1));
+                null,
+                PageRequest.of(0, 11)
+        )).thenReturn(List.of(rewardProduct));
         when(s3Service.createPresignedUrl(IMAGE_KEY)).thenReturn(IMAGE_URL);
 
-        Page<RewardProductResponseDTO> result = rewardProductService.getRewardProducts(null, pageable);
+        RewardProductPageResponseDTO result =
+                rewardProductService.getRewardProducts(null, null, 10);
 
-        assertThat(result.getContent()).singleElement().satisfies(response -> {
+        assertThat(result.items()).singleElement().satisfies(response -> {
             assertThat(response.rewardProductId()).isEqualTo(1L);
             assertThat(response.imageUrl()).isEqualTo(IMAGE_URL);
         });
@@ -64,22 +63,23 @@ class RewardProductServiceTest {
 
     @Test
     void getRewardProductsFiltersByProductTypeAndCreatesPresignedImageUrl() {
-        Pageable pageable = PageRequest.of(0, 10);
         RewardProduct rewardProduct = createRewardProduct(RewardProductType.COUPON_GIFTICON);
-        when(rewardProductRepository.findByRewardProductTypeAndStatusAndStockQuantityGreaterThan(
+        when(rewardProductRepository.findAvailableProducts(
                 RewardProductType.COUPON_GIFTICON,
                 RewardProductStatus.ACTIVE,
                 0,
-                pageable
-        )).thenReturn(new PageImpl<>(List.of(rewardProduct), pageable, 1));
+                null,
+                PageRequest.of(0, 11)
+        )).thenReturn(List.of(rewardProduct));
         when(s3Service.createPresignedUrl(IMAGE_KEY)).thenReturn(IMAGE_URL);
 
-        Page<RewardProductResponseDTO> result = rewardProductService.getRewardProducts(
+        RewardProductPageResponseDTO result = rewardProductService.getRewardProducts(
                 RewardProductType.COUPON_GIFTICON,
-                pageable
+                null,
+                10
         );
 
-        assertThat(result.getContent()).singleElement().satisfies(response -> {
+        assertThat(result.items()).singleElement().satisfies(response -> {
             assertThat(response.rewardProductType()).isEqualTo(RewardProductType.COUPON_GIFTICON);
             assertThat(response.imageUrl()).isEqualTo(IMAGE_URL);
         });

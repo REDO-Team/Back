@@ -5,7 +5,8 @@ import com.redo.domain.reward.dto.res.RewardRedemptionHistoryResponseDTO;
 import com.redo.domain.reward.dto.res.RewardRedemptionResponseDTO;
 import com.redo.domain.reward.entity.RewardFulfillment;
 import com.redo.domain.reward.entity.RewardRedemption;
-import org.springframework.data.domain.Page;
+
+import java.util.List;
 
 public class RewardRedemptionConverter {
 
@@ -44,13 +45,14 @@ public class RewardRedemptionConverter {
     }
 
     public static RewardRedemptionHistoryPageResponseDTO toRewardRedemptionHistoryPageResponse(
-            Page<RewardRedemptionHistoryResponseDTO> page
+            List<RewardRedemptionHistoryResponseDTO> content,
+            Long nextCursor,
+            boolean hasNext
     ) {
         return new RewardRedemptionHistoryPageResponseDTO(
-                page.getContent(),
-                page.getNumber(),
-                page.getSize(),
-                page.hasNext()
+                content,
+                nextCursor,
+                hasNext
         );
     }
 }
