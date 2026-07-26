@@ -22,4 +22,13 @@ public class RecycleGuideResponseDTO {
         private final String recycleCategory;
         private final List<String> guideSteps;
     }
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    public static class ImageSearchResultDTO {
+        private final boolean isIdentified;
+        private final String reason;
+        private final GuideDetailDTO guideDetail;
+    }
 }

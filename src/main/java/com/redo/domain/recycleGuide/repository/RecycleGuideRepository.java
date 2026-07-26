@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface RecycleGuideRepository extends JpaRepository<RecycleGuide, Long> {
@@ -14,4 +15,7 @@ public interface RecycleGuideRepository extends JpaRepository<RecycleGuide, Long
            "LEFT JOIN FETCH g.guideSteps " +
            "WHERE g.name = :name")
     Optional<RecycleGuide> findByName(@Param("name") String name);
+
+    @Query("SELECT g.name FROM RecycleGuide g")
+    List<String> findAllNames();
 }
