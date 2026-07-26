@@ -2,7 +2,7 @@ package com.redo.domain.recycleGuide.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redo.domain.recycleGuide.dto.RecycleGuideResponseDTO.ImageSearchResultDTO;
+import com.redo.domain.recycleGuide.dto.RecycleGuideResponseDTO.AiSearchResultDTO;
 import com.redo.domain.recycleGuide.dto.RecycleGuideResponseDTO.GuideDetailDTO;
 import com.redo.domain.recycleGuide.repository.RecycleGuideRepository;
 import com.redo.global.ai.gemini.client.GeminiClient;
@@ -29,7 +29,7 @@ public class RecycleGuideAiService {
     private final RecycleGuideService recycleGuideService;
     private final ObjectMapper objectMapper;
 
-    public ImageSearchResultDTO searchGuideByImage(MultipartFile image) {
+    public AiSearchResultDTO searchGuideByImage(MultipartFile image) {
         if (image == null || image.isEmpty()) {
             throw new GeneralException(GeminiErrorCode.EMPTY_FILE);
         }
@@ -86,7 +86,7 @@ public class RecycleGuideAiService {
             reason = resultNode.path("reason").asText();
         } catch (Exception e) {
             log.error("Failed to parse Gemini response: {}", response.content(), e);
-            return ImageSearchResultDTO.builder()
+            return AiSearchResultDTO.builder()
                     .isIdentified(false)
                     .reason("AI 응답을 분석하는 중 오류가 발생했습니다.")
                     .guideDetail(null)
@@ -95,7 +95,7 @@ public class RecycleGuideAiService {
 
         // 'NOT_FOUND' 거나 결과가 우리 DB에 없는 이름일 경우 식별 실패로 간주
         if ("NOT_FOUND".equals(identifiedName) || identifiedName.isBlank() || !validNames.contains(identifiedName)) {
-            return ImageSearchResultDTO.builder()
+            return AiSearchResultDTO.builder()
                     .isIdentified(false)
                     .reason(reason)
                     .guideDetail(null)
@@ -104,7 +104,72 @@ public class RecycleGuideAiService {
 
         GuideDetailDTO guideDetail = recycleGuideService.getGuideByName(identifiedName);
 
-        return ImageSearchResultDTO.builder()
+        return AiSearchResultDTO.builder()
+                .isIdentified(true)
+                .reason(reason)
+                .guideDetail(guideDetail)
+                .build();
+    }
+
+    public AiSearchResultDTO searchGuideByText(String text) {
+        if (text == null || text.isBlank()) {
+            throw new IllegalArgumentException("검색할 문제 상황 텍스트가 비어 있습니다.");
+        }
+
+        List<String> validNames = recycleGuideRepository.findAllNames();
+
+        String jsonSchema = """
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string", "description": "The exact matched item name from the list, or NOT_FOUND" },
+                    "reason": { "type": "string", "description": "The reasoning for choosing this item" }
+                  },
+                  "required": ["name", "reason"]
+                }
+                """;
+
+        String userPrompt = "Choose the ONE most appropriate item name from the provided list that matches the problem description. If none match or it's difficult to tell, you MUST answer with 'NOT_FOUND'.\\nDescription: " + text + "\\nList: " + validNames;
+
+        GeminiRequest request = new GeminiRequest(
+                "You are an expert in recycling and waste sorting. Based on the provided problem description and list of item names, identify the exact item name in JSON format.",
+                userPrompt,
+                List.of(),
+                true,
+                jsonSchema,
+                null,
+                0.1,
+                300
+        );
+
+        GeminiResponse response = geminiClient.generate(request);
+
+        String identifiedName;
+        String reason;
+        try {
+            JsonNode resultNode = objectMapper.readTree(response.content());
+            identifiedName = resultNode.path("name").asText();
+            reason = resultNode.path("reason").asText();
+        } catch (Exception e) {
+            log.error("Failed to parse Gemini response for text: {}", response.content(), e);
+            return AiSearchResultDTO.builder()
+                    .isIdentified(false)
+                    .reason("AI 응답을 분석하는 중 오류가 발생했습니다.")
+                    .guideDetail(null)
+                    .build();
+        }
+
+        if ("NOT_FOUND".equals(identifiedName) || identifiedName.isBlank() || !validNames.contains(identifiedName)) {
+            return AiSearchResultDTO.builder()
+                    .isIdentified(false)
+                    .reason(reason)
+                    .guideDetail(null)
+                    .build();
+        }
+
+        GuideDetailDTO guideDetail = recycleGuideService.getGuideByName(identifiedName);
+
+        return AiSearchResultDTO.builder()
                 .isIdentified(true)
                 .reason(reason)
                 .guideDetail(guideDetail)
