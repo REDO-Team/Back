@@ -8,10 +8,16 @@ import lombok.*;
 @Entity
 @Table(
         name = "reward_redemptions",
-        indexes = @Index(
-                name = "idx_reward_redemptions_user_created_at",
-                columnList = "user_id, created_at"
-        ),
+        indexes = {
+                @Index(
+                        name = "idx_reward_redemptions_user_created_at",
+                        columnList = "user_id, created_at"
+                ),
+                @Index(
+                        name = "idx_reward_redemptions_user_id",
+                        columnList = "user_id, id"
+                )
+        },
         uniqueConstraints = @UniqueConstraint(
                 name = "uk_reward_redemptions_user_idempotency_key",
                 columnNames = {"user_id", "idempotency_key"}

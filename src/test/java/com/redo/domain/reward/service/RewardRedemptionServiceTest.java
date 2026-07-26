@@ -6,7 +6,7 @@ import com.redo.domain.point.exception.PointException;
 import com.redo.domain.point.exception.code.PointErrorCode;
 import com.redo.domain.point.repository.PointTransactionRepository;
 import com.redo.domain.reward.dto.req.RewardRedemptionCreateRequestDTO;
-import com.redo.domain.reward.dto.res.RewardRedemptionHistoryResponseDTO;
+import com.redo.domain.reward.dto.res.RewardRedemptionHistoryPageResponseDTO;
 import com.redo.domain.reward.dto.res.RewardRedemptionResponseDTO;
 import com.redo.domain.reward.entity.RewardFulfillment;
 import com.redo.domain.reward.entity.RewardProduct;
@@ -32,10 +32,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -207,22 +204,51 @@ class RewardRedemptionServiceTest {
                 .rewardFulfillmentType(RewardFulfillmentType.DELIVERY)
                 .status(RewardFulfillmentStatus.READY)
                 .build();
-        Pageable pageable = PageRequest.of(0, 10);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(rewardFulfillmentRepository.findPageByUserWithRedemptionAndProduct(user, pageable))
-                .thenReturn(new PageImpl<>(List.of(fulfillment), pageable, 1));
+        when(rewardFulfillmentRepository.findByUserWithRedemptionAndProduct(
+                user,
+                null,
+                PageRequest.of(0, 11)
+        )).thenReturn(List.of(fulfillment));
         when(s3Service.createPresignedUrl(IMAGE_KEY)).thenReturn(IMAGE_URL);
 
-        Page<RewardRedemptionHistoryResponseDTO> result =
-                rewardRedemptionService.getMyRedemptions(1L, pageable);
+        RewardRedemptionHistoryPageResponseDTO result =
+                rewardRedemptionService.getMyRedemptions(1L, null, 10);
 
-        assertThat(result.getContent()).singleElement().satisfies(history -> {
+        assertThat(result.content()).singleElement().satisfies(history -> {
             assertThat(history.rewardRedemptionId()).isEqualTo(4L);
             assertThat(history.productImageUrl()).isEqualTo(IMAGE_URL);
             assertThat(history.fulfillmentType()).isEqualTo(RewardFulfillmentType.DELIVERY);
             assertThat(history.fulfillmentStatus()).isEqualTo(RewardFulfillmentStatus.READY);
         });
+        assertThat(result.hasNext()).isFalse();
+        assertThat(result.nextCursor()).isNull();
         verify(s3Service).createPresignedUrl(IMAGE_KEY);
+    }
+
+    @Test
+    void getMyRedemptionsReturnsNextCursorWhenMoreItemsExist() {
+        User user = createUser(4_000);
+        RewardProduct product = createProduct(RewardProductType.PARTNER_BRAND, 1_000, 9);
+        List<RewardFulfillment> fulfillments = List.of(
+                createFulfillment(user, product, 30L, 40L),
+                createFulfillment(user, product, 20L, 30L),
+                createFulfillment(user, product, 10L, 20L)
+        );
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(rewardFulfillmentRepository.findByUserWithRedemptionAndProduct(
+                user,
+                null,
+                PageRequest.of(0, 3)
+        )).thenReturn(fulfillments);
+        when(s3Service.createPresignedUrl(IMAGE_KEY)).thenReturn(IMAGE_URL);
+
+        RewardRedemptionHistoryPageResponseDTO result =
+                rewardRedemptionService.getMyRedemptions(1L, null, 2);
+
+        assertThat(result.content()).hasSize(2);
+        assertThat(result.hasNext()).isTrue();
+        assertThat(result.nextCursor()).isEqualTo(20L);
     }
 
     private void stubSuccessfulRedemption(User user, RewardProduct product) {
@@ -254,6 +280,37 @@ class RewardRedemptionServiceTest {
                 .pricePoint(pricePoint)
                 .stockQuantity(stockQuantity)
                 .status(RewardProductStatus.ACTIVE)
+                .build();
+    }
+
+    private RewardFulfillment createFulfillment(
+            User user,
+            RewardProduct product,
+            Long redemptionId,
+            Long fulfillmentId
+    ) {
+        RewardRedemption redemption = RewardRedemption.builder()
+                .id(redemptionId)
+                .user(user)
+                .rewardProduct(product)
+                .productName(product.getName())
+                .productImageKey(product.getImageKey())
+                .receiverName("김지구")
+                .receiverPhone("01012345678")
+                .usedPoint(1_000)
+                .idempotencyKey(IDEMPOTENCY_KEY + "-" + redemptionId)
+                .build();
+        ReflectionTestUtils.setField(
+                redemption,
+                "createdAt",
+                LocalDateTime.of(2026, 7, 21, 12, 0)
+        );
+
+        return RewardFulfillment.builder()
+                .id(fulfillmentId)
+                .rewardRedemption(redemption)
+                .rewardFulfillmentType(RewardFulfillmentType.DELIVERY)
+                .status(RewardFulfillmentStatus.READY)
                 .build();
     }
 

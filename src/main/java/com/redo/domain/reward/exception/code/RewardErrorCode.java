@@ -34,6 +34,10 @@ public enum RewardErrorCode implements BaseErrorCode {
             "REWARD_400_006",
             "구매 요청 멱등키가 올바르지 않습니다."),
 
+    INVALID_CURSOR_REQUEST(HttpStatus.BAD_REQUEST,
+            "REWARD_400_007",
+            "커서 또는 조회 개수가 올바르지 않습니다."),
+
     DUPLICATE_REDEMPTION_REQUEST(HttpStatus.CONFLICT,
             "REWARD_409_001",
             "이미 처리된 구매 요청입니다."),

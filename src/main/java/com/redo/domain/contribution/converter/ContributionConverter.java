@@ -1,8 +1,11 @@
 package com.redo.domain.contribution.converter;
 
+import com.redo.domain.contribution.dto.cache.ContributionEventCacheDTO;
 import com.redo.domain.contribution.dto.res.MyContributionResponseDTO;
+import com.redo.domain.contribution.dto.res.OverallContributionResponseDTO;
 import com.redo.domain.contribution.enums.ContributionMilestone;
 import com.redo.domain.contribution.enums.ContributionMilestoneStatus;
+import com.redo.domain.user.entity.UserProfile;
 
 import java.util.Arrays;
 import java.util.List;
@@ -76,9 +79,7 @@ public class ContributionConverter {
             ContributionMilestone type,
             long totalCertificationCount
     ) {
-        return Arrays.stream(ContributionMilestone.values())
-                .filter(candidate -> totalCertificationCount < candidate.requiredCount())
-                .findFirst()
+        return ContributionMilestone.next(totalCertificationCount)
                 .map(candidate -> candidate == type)
                 .orElse(false);
     }
@@ -104,5 +105,89 @@ public class ContributionConverter {
                 nickname,
                 nextMilestone == null ? 0 : remainingCount
         );
+    }
+
+    public static OverallContributionResponseDTO toOverallContributionResponse(
+            long totalParticipantCount,
+            List<OverallContributionResponseDTO.FeedDTO> feeds,
+            Long nextCursor,
+            boolean hasNext
+    ) {
+        return new OverallContributionResponseDTO(
+                totalParticipantCount,
+                "현재 %d명의 사용자가 함께 지구를 지키고 있어요".formatted(totalParticipantCount),
+                feeds,
+                nextCursor,
+                hasNext
+        );
+    }
+
+    public static OverallContributionResponseDTO.FeedDTO toContributionFeed(
+            ContributionEventCacheDTO event,
+            UserProfile userProfile,
+            String profileImageUrl
+    ) {
+        String nickname = userProfile == null ? "사용자" : userProfile.getNickname();
+
+        return new OverallContributionResponseDTO.FeedDTO(
+                event.eventId(),
+                event.userId(),
+                nickname,
+                profileImageUrl,
+                createFeedMessage(event, nickname),
+                createHighlightText(event),
+                event.eventType(),
+                event.targetMilestone() == null
+                        ? null
+                        : event.targetMilestone().displayName(),
+                event.showRemainingCount() ? event.remainingCount() : null,
+                event.createdAt()
+        );
+    }
+
+    private static String createFeedMessage(
+            ContributionEventCacheDTO event,
+            String nickname
+    ) {
+        return switch (event.eventType()) {
+            case FIRST_CERTIFICATION ->
+                    "%s님이 첫 분리수거를 실천했어요!".formatted(nickname);
+            case DAILY_CERTIFICATION ->
+                    "%s님이 %d번째 분리수거를 완료했어요!".formatted(
+                            nickname,
+                            event.certificationCount()
+                    );
+            case REWARD_PROGRESS -> createRewardProgressMessage(event, nickname);
+        };
+    }
+
+    private static String createRewardProgressMessage(
+            ContributionEventCacheDTO event,
+            String nickname
+    ) {
+        ContributionMilestone targetMilestone = event.targetMilestone();
+        if (event.showRemainingCount()) {
+            return "%s님은 %s 제작까지 %d회 남았어요!".formatted(
+                    nickname,
+                    targetMilestone.displayName(),
+                    event.remainingCount()
+            );
+        }
+
+        return "%s님이 %s%s 만드는 중이에요!".formatted(
+                nickname,
+                targetMilestone.displayName(),
+                targetMilestone.objectParticle()
+        );
+    }
+
+    private static String createHighlightText(ContributionEventCacheDTO event) {
+        return switch (event.eventType()) {
+            case FIRST_CERTIFICATION -> "첫";
+            case DAILY_CERTIFICATION -> "%d번째".formatted(event.certificationCount());
+            case REWARD_PROGRESS -> event.showRemainingCount()
+                    ? "%d회".formatted(event.remainingCount())
+                    : event.targetMilestone().displayName();
+        };
     }
 }

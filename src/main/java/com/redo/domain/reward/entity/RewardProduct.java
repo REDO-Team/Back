@@ -7,7 +7,19 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "reward_products")
+@Table(
+        name = "reward_products",
+        indexes = {
+                @Index(
+                        name = "idx_reward_products_status_id_stock",
+                        columnList = "status, id, stock_quantity"
+                ),
+                @Index(
+                        name = "idx_reward_products_type_status_id_stock",
+                        columnList = "reward_product_type, status, id, stock_quantity"
+                )
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor

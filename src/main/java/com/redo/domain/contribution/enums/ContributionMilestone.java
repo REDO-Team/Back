@@ -1,5 +1,9 @@
 package com.redo.domain.contribution.enums;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Optional;
+
 public enum ContributionMilestone {
 
     TOILET_PAPER("화장지", 3, "를"),
@@ -31,5 +35,11 @@ public enum ContributionMilestone {
 
     public String objectParticle() {
         return objectParticle;
+    }
+
+    public static Optional<ContributionMilestone> next(long certificationCount) {
+        return Arrays.stream(values())
+                .filter(milestone -> certificationCount < milestone.requiredCount)
+                .min(Comparator.comparingInt(milestone -> milestone.requiredCount));
     }
 }

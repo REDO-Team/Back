@@ -11,10 +11,16 @@ import lombok.*;
 @Entity
 @Table(
         name = "point_transactions",
-        indexes = @Index(
-                name = "idx_point_transactions_user_type_created_at",
-                columnList = "user_id, transaction_type, created_at"
-        )
+        indexes = {
+                @Index(
+                        name = "idx_point_transactions_user_type_created_at",
+                        columnList = "user_id, transaction_type, created_at"
+                ),
+                @Index(
+                        name = "idx_point_transactions_user_id",
+                        columnList = "user_id, id"
+                )
+        }
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

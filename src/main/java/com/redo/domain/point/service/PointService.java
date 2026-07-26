@@ -5,6 +5,7 @@ import com.redo.domain.certification.enums.CertificationSource;
 import com.redo.domain.certification.repository.CertificationRepository;
 import com.redo.domain.point.converter.PointConverter;
 import com.redo.domain.point.dto.res.PointBalanceResponseDTO;
+import com.redo.domain.point.dto.res.PointTransactionPageResponseDTO;
 import com.redo.domain.point.dto.res.PointTransactionResponseDTO;
 import com.redo.domain.point.entity.PointTransaction;
 import com.redo.domain.point.enums.PointTransactionType;
@@ -16,8 +17,7 @@ import com.redo.domain.user.exception.UserErrorCode;
 import com.redo.domain.user.repository.UserRepository;
 import com.redo.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -58,11 +59,34 @@ public class PointService {
     }
 
     // 포인트 거래 내역 조회 로직
-    public Page<PointTransactionResponseDTO> getMyPointTransactions(Long userId, Pageable pageable) {
+    public PointTransactionPageResponseDTO getMyPointTransactions(
+            Long userId,
+            Long cursor,
+            int size
+    ) {
         User user = getUser(userId);
+        List<PointTransaction> transactions =
+                pointTransactionRepository.findByUserWithRewardRedemptionAndProduct(
+                        user,
+                        cursor,
+                        PageRequest.of(0, size + 1)
+                );
+        boolean hasNext = transactions.size() > size;
+        List<PointTransaction> pageTransactions = hasNext
+                ? transactions.subList(0, size)
+                : transactions;
+        List<PointTransactionResponseDTO> items = pageTransactions.stream()
+                .map(PointConverter::toPointTransactionResponse)
+                .toList();
+        Long nextCursor = hasNext && !pageTransactions.isEmpty()
+                ? pageTransactions.get(pageTransactions.size() - 1).getId()
+                : null;
 
-        return pointTransactionRepository.findPageByUserWithRewardRedemptionAndProduct(user, pageable)
-                .map(PointConverter::toPointTransactionResponse);
+        return PointConverter.toPointTransactionPageResponse(
+                items,
+                nextCursor,
+                hasNext
+        );
     }
 
     // 포인트 적립 로직 (인증 성공 시 내부에서 호출)

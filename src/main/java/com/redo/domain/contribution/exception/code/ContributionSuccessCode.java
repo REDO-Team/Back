@@ -14,6 +14,12 @@ public enum ContributionSuccessCode implements BaseSuccessCode {
             HttpStatus.OK,
             "CONTRIBUTION_200_001",
             "나의 기여도 조회에 성공했습니다."
+    ),
+
+    GET_OVERALL_CONTRIBUTION_SUCCESS(
+            HttpStatus.OK,
+            "CONTRIBUTION_200_002",
+            "전체 기여도 조회에 성공했습니다."
     );
 
     private final HttpStatus httpStatus;
