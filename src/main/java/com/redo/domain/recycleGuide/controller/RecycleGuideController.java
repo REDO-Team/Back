@@ -1,6 +1,7 @@
 package com.redo.domain.recycleGuide.controller;
 
 import com.redo.domain.recycleGuide.dto.RecycleGuideFavoriteResponseDTO;
+import com.redo.domain.recycleGuide.dto.RecycleGuideRequestDTO;
 import com.redo.domain.recycleGuide.dto.RecycleGuideResponseDTO;
 import com.redo.domain.recycleGuide.service.RecycleGuideFavoriteService;
 import com.redo.domain.recycleGuide.service.RecycleGuideService;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -52,11 +54,20 @@ public class RecycleGuideController {
 
     @Operation(summary = "이미지로 배출 가이드 검색", description = "쓰레기 이미지를 업로드하면 AI가 분석하여 해당하는 배출 가이드 상세 정보를 반환합니다.")
     @PostMapping(value = "/api/guides/search-by-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<RecycleGuideResponseDTO.ImageSearchResultDTO> searchGuideByImage(
+    public ApiResponse<RecycleGuideResponseDTO.AiSearchResultDTO> searchGuideByImage(
             @Parameter(description = "분석할 쓰레기 이미지 파일", required = true)
             @RequestPart("image") MultipartFile image) {
 
-        RecycleGuideResponseDTO.ImageSearchResultDTO result = recycleGuideAiService.searchGuideByImage(image);
+        RecycleGuideResponseDTO.AiSearchResultDTO result = recycleGuideAiService.searchGuideByImage(image);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, result);
+    }
+
+    @Operation(summary = "텍스트로 배출 가이드 검색", description = "문제 상황 텍스트를 입력하면 AI가 분석하여 해당하는 배출 가이드 상세 정보를 반환합니다.")
+    @PostMapping("/api/guides/search-by-text")
+    public ApiResponse<RecycleGuideResponseDTO.AiSearchResultDTO> searchGuideByText(
+            @Valid @RequestBody RecycleGuideRequestDTO.TextSearchDTO request) {
+
+        RecycleGuideResponseDTO.AiSearchResultDTO result = recycleGuideAiService.searchGuideByText(request.getQuery());
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, result);
     }
 }
