@@ -3,6 +3,7 @@ package com.redo.domain.recycleGuide.entity;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redo.TestcontainersConfiguration;
+import com.redo.domain.recycleGuide.repository.RecycleJudgementTemplateRepository;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,9 @@ class RecycleJudgementTemplatePersistenceTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private RecycleJudgementTemplateRepository templateRepository;
 
     @Test
     void persistsAndReadsJsonConditionsFromMySqlJsonColumns() throws Exception {
@@ -72,5 +76,43 @@ class RecycleJudgementTemplatePersistenceTest {
                 .setParameter("templateId", templateId)
                 .getSingleResult();
         assertThat(extractedCondition).isEqualTo("내용물이 비어 있음");
+    }
+
+    @Test
+    void findsHighestActiveVersionForGuide() {
+        RecycleGuide recycleGuide = new RecycleGuide();
+        ReflectionTestUtils.setField(recycleGuide, "name", "알루미늄 캔");
+        entityManager.persist(recycleGuide);
+
+        entityManager.persist(template(recycleGuide, 1, true));
+        RecycleJudgementTemplate expected = template(recycleGuide, 2, true);
+        entityManager.persist(expected);
+        entityManager.persist(template(recycleGuide, 3, false));
+        entityManager.flush();
+
+        RecycleJudgementTemplate found = templateRepository
+                .findTopByRecycleGuideIdAndIsActiveTrueOrderByVersionDesc(
+                        recycleGuide.getId()
+                )
+                .orElseThrow();
+
+        assertThat(found.getId()).isEqualTo(expected.getId());
+        assertThat(found.getVersion()).isEqualTo(2);
+    }
+
+    private RecycleJudgementTemplate template(
+            RecycleGuide recycleGuide,
+            int version,
+            boolean active
+    ) {
+        return RecycleJudgementTemplate.create(
+                recycleGuide,
+                version,
+                "[{\"code\":\"EMPTY\"}]",
+                "[{\"code\":\"CONTAMINATED\"}]",
+                "판정 프롬프트 " + version,
+                "다시 촬영해 주세요.",
+                active
+        );
     }
 }

@@ -1,6 +1,7 @@
 package com.redo.domain.certification.exception.code;
 
 import com.redo.domain.certification.enums.CertificationRestrictionType;
+import com.redo.domain.certification.enums.CertificationStatus;
 import com.redo.global.apiPayload.code.BaseSuccessCode;
 import com.redo.global.apiPayload.code.SuccessReason;
 import lombok.AllArgsConstructor;
@@ -30,6 +31,16 @@ public enum CertificationSuccessCode implements BaseSuccessCode {
             HttpStatus.OK,
             "CERTIFICATION200_9",
             "진행 중인 인증이 있습니다."
+    ),
+    CREATE_CERTIFICATION_PASSED(
+            HttpStatus.CREATED,
+            "CERTIFICATION201_0",
+            "인증 검수가 완료되었습니다."
+    ),
+    CREATE_CERTIFICATION_FAILED(
+            HttpStatus.CREATED,
+            "CERTIFICATION201_1",
+            "인증 검수가 완료되었습니다."
     );
 
     private final HttpStatus httpStatus;
@@ -42,6 +53,16 @@ public enum CertificationSuccessCode implements BaseSuccessCode {
             case DAILY_LIMIT_EXCEEDED -> GET_HOME_DAILY_LIMIT_EXCEEDED;
             case COOLDOWN -> GET_HOME_COOLDOWN;
             case PROCESSING_EXISTS -> GET_HOME_PROCESSING_EXISTS;
+        };
+    }
+
+    public static CertificationSuccessCode from(CertificationStatus status) {
+        return switch (status) {
+            case PASSED -> CREATE_CERTIFICATION_PASSED;
+            case FAILED -> CREATE_CERTIFICATION_FAILED;
+            case PROCESSING -> throw new IllegalArgumentException(
+                    "POST certification response must be terminal"
+            );
         };
     }
 
