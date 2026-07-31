@@ -18,6 +18,8 @@ FROM eclipse-temurin:17-jre-jammy
 
 WORKDIR /app
 
+ENV JAVA_TOOL_OPTIONS="-Duser.timezone=Asia/Seoul"
+
 RUN groupadd --system spring \
     && useradd --system --gid spring spring
 

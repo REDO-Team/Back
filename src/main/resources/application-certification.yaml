@@ -1,0 +1,8 @@
+app:
+  certification:
+    judgement:
+      timeout: 210s
+      core-pool-size: 2
+      max-pool-size: 4
+      queue-capacity: 20
+      timeout-scheduler-pool-size: 4

@@ -1,8 +1,18 @@
 package com.redo.domain.certification.controller;
 
+import com.redo.domain.certification.dto.req.CertificationCreateRequestDTO;
+import com.redo.domain.certification.dto.res.CertificationCreateResponseDTO;
+import com.redo.domain.certification.dto.res.CertificationErrorDetail;
 import com.redo.domain.certification.dto.res.CertificationHomeResponseDTO;
+import com.redo.domain.certification.enums.CertificationFailureType;
 import com.redo.domain.certification.enums.CertificationRestrictionType;
+import com.redo.domain.certification.enums.CertificationStatus;
+import com.redo.domain.certification.exception.CertificationException;
+import com.redo.domain.certification.exception.code.CertificationErrorCode;
+import com.redo.domain.certification.service.CertificationCreateService;
 import com.redo.domain.certification.service.CertificationHomeService;
+import com.redo.global.ai.gemini.exception.GeminiException;
+import com.redo.global.ai.gemini.exception.code.GeminiErrorCode;
 import com.redo.global.security.JwtAccessDeniedHandler;
 import com.redo.global.security.JwtAuthenticationEntryPoint;
 import com.redo.global.security.JwtAuthenticationFilter;
@@ -11,17 +21,30 @@ import com.redo.global.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,6 +68,9 @@ class CertificationControllerTest {
 
     @MockitoBean
     private CertificationHomeService certificationHomeService;
+
+    @MockitoBean
+    private CertificationCreateService certificationCreateService;
 
     @MockitoBean
     private JwtUtil jwtUtil;
@@ -110,9 +136,155 @@ class CertificationControllerTest {
         verifyNoInteractions(certificationHomeService);
     }
 
+    @Test
+    void returnsPassedResultFromLongRunningMultipartRequest() throws Exception {
+        stubAuthentication();
+        when(certificationCreateService.create(
+                eq(USER_ID),
+                any(CertificationCreateRequestDTO.class)
+        )).thenReturn(CompletableFuture.completedFuture(passedResponse()));
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "can.jpg",
+                "image/jpeg",
+                "image".getBytes()
+        );
+
+        MvcResult pending = mockMvc.perform(multipart("/api/certification")
+                        .file(image)
+                        .param("certificationSource", "GENERAL")
+                        .header("Authorization", "Bearer " + ACCESS_TOKEN))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(pending))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("CERTIFICATION201_0"))
+                .andExpect(jsonPath("$.result.certificationId").value(101))
+                .andExpect(jsonPath("$.result.status").value("PASSED"))
+                .andExpect(jsonPath("$.result.earnedPoint").value(50))
+                .andExpect(jsonPath("$.result.pollingIntervalSeconds").doesNotExist())
+                .andExpect(jsonPath("$.result.statusPath").doesNotExist());
+
+        assertGeneralCreateRequestWasBound();
+    }
+
+    @Test
+    void returnsVlmFailureAsCompleted201Result() throws Exception {
+        stubAuthentication();
+        when(certificationCreateService.create(
+                eq(USER_ID),
+                any(CertificationCreateRequestDTO.class)
+        )).thenReturn(CompletableFuture.completedFuture(failedResponse()));
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "can.jpg",
+                "image/jpeg",
+                "image".getBytes()
+        );
+
+        MvcResult pending = mockMvc.perform(multipart("/api/certification")
+                        .file(image)
+                        .param("certificationSource", "GENERAL")
+                        .header("Authorization", "Bearer " + ACCESS_TOKEN))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(pending))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value("CERTIFICATION201_1"))
+                .andExpect(jsonPath("$.result.status").value("FAILED"))
+                .andExpect(jsonPath("$.result.failureType")
+                        .value("VLM_JUDGEMENT_FAILED"))
+                .andExpect(jsonPath("$.result.earnedPoint").value(0))
+                .andExpect(jsonPath("$.result.retryAllowed").value(true));
+
+        assertGeneralCreateRequestWasBound();
+    }
+
+    @Test
+    void returnsTypedProcessingConflictForFrontendRecovery() throws Exception {
+        stubAuthentication();
+        when(certificationCreateService.create(
+                eq(USER_ID),
+                any(CertificationCreateRequestDTO.class)
+        )).thenThrow(new CertificationException(
+                CertificationErrorCode.PROCESSING_EXISTS,
+                CertificationErrorDetail.processing(
+                        99L,
+                        "/api/certification/99/status"
+                )
+        ));
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "can.jpg",
+                "image/jpeg",
+                "image".getBytes()
+        );
+
+        mockMvc.perform(multipart("/api/certification")
+                        .file(image)
+                        .param("certificationSource", "GENERAL")
+                        .header("Authorization", "Bearer " + ACCESS_TOKEN))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CERTIFICATION409_0"))
+                .andExpect(jsonPath("$.errorDetail.type").value("PROCESSING_EXISTS"))
+                .andExpect(jsonPath("$.errorDetail.certificationId").value(99))
+                .andExpect(jsonPath("$.errorDetail.statusPath")
+                        .value("/api/certification/99/status"));
+
+        assertGeneralCreateRequestWasBound();
+    }
+
+    @Test
+    void returnsGeminiTimeoutAsSystemErrorInsteadOfVlmFailure() throws Exception {
+        stubAuthentication();
+        CompletableFuture<CertificationCreateResponseDTO> failed =
+                new CompletableFuture<>();
+        failed.completeExceptionally(new GeminiException(GeminiErrorCode.TIMEOUT));
+        when(certificationCreateService.create(
+                eq(USER_ID),
+                any(CertificationCreateRequestDTO.class)
+        )).thenReturn(failed);
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "can.jpg",
+                "image/jpeg",
+                "image".getBytes()
+        );
+
+        MvcResult pending = mockMvc.perform(multipart("/api/certification")
+                        .file(image)
+                        .param("certificationSource", "GENERAL")
+                        .header("Authorization", "Bearer " + ACCESS_TOKEN))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(pending))
+                .andExpect(status().isGatewayTimeout())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("GEMINI_504_001"));
+
+        assertGeneralCreateRequestWasBound();
+    }
+
     private void stubAuthentication() {
         when(jwtUtil.validateToken(ACCESS_TOKEN)).thenReturn(true);
         when(jwtUtil.getUserIdFromToken(ACCESS_TOKEN)).thenReturn(USER_ID);
+    }
+
+    private void assertGeneralCreateRequestWasBound() {
+        ArgumentCaptor<CertificationCreateRequestDTO> requestCaptor =
+                ArgumentCaptor.forClass(CertificationCreateRequestDTO.class);
+        verify(certificationCreateService).create(eq(USER_ID), requestCaptor.capture());
+
+        CertificationCreateRequestDTO request = requestCaptor.getValue();
+        assertThat(request.certificationSource()).isEqualTo("GENERAL");
+        assertThat(request.recycleGuideId()).isNull();
+        assertThat(request.image()).isNotNull();
+        assertThat(request.image().getOriginalFilename()).isEqualTo("can.jpg");
     }
 
     private CertificationHomeResponseDTO homeResponse(
@@ -132,6 +304,40 @@ class CertificationControllerTest {
                 ),
                 new CertificationHomeResponseDTO.PolicyDTO(300, 1, true),
                 new CertificationHomeResponseDTO.RewardPolicyDTO(50, 100)
+        );
+    }
+
+    private CertificationCreateResponseDTO passedResponse() {
+        return new CertificationCreateResponseDTO(
+                101L,
+                CertificationStatus.PASSED,
+                null,
+                12L,
+                "캔",
+                "금속",
+                50,
+                null,
+                List.of(),
+                false,
+                null,
+                LocalDateTime.of(2026, 7, 31, 14, 3)
+        );
+    }
+
+    private CertificationCreateResponseDTO failedResponse() {
+        return new CertificationCreateResponseDTO(
+                102L,
+                CertificationStatus.FAILED,
+                CertificationFailureType.VLM_JUDGEMENT_FAILED,
+                12L,
+                "캔",
+                "금속",
+                0,
+                "내용물이 남아 있습니다.",
+                List.of("내용물을 비운 뒤 다시 촬영해 주세요."),
+                true,
+                "/api/certification/102/retry",
+                LocalDateTime.of(2026, 7, 31, 14, 3)
         );
     }
 }

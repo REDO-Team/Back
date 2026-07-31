@@ -2,6 +2,9 @@ spring:
   application:
     name: redo-back
 
+  config:
+    import: optional:classpath:application-certification.yaml
+
   ai:
     model:
       chat: google-genai
@@ -30,6 +33,10 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 55MB
+
+  mvc:
+    async:
+      request-timeout: 220s
 
   datasource:
     url: ${DB_URL}
