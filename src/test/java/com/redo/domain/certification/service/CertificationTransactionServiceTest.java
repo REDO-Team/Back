@@ -17,6 +17,8 @@ import com.redo.domain.certification.repository.AiJudgementRepository;
 import com.redo.domain.certification.repository.CertificationRepository;
 import com.redo.domain.certification.service.policy.CertificationPolicyEvaluator;
 import com.redo.domain.certification.service.policy.CertificationPolicyResult;
+import com.redo.domain.point.exception.PointException;
+import com.redo.domain.point.exception.code.PointErrorCode;
 import com.redo.domain.point.service.PointService;
 import com.redo.domain.recycleGuide.dto.ActiveRecycleJudgementTemplate;
 import com.redo.domain.recycleGuide.entity.RecycleGuide;
@@ -39,7 +41,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -248,6 +252,55 @@ class CertificationTransactionServiceTest {
                 104L,
                 CertificationSource.AFTER_SEARCH,
                 "certification:104:earn"
+        );
+    }
+
+    @Test
+    void propagatesPointFailureToRollbackCompletionTransaction() {
+        Certification certification = Certification.create(
+                user,
+                guide,
+                "certifications/42/image.jpg",
+                CertificationSource.AFTER_SEARCH
+        );
+        ReflectionTestUtils.setField(certification, "id", 105L);
+        when(certificationRepository.findByIdAndUserIdForUpdate(105L, USER_ID))
+                .thenReturn(Optional.of(certification));
+        CertificationJudgementContext context = new CertificationJudgementContext(
+                105L,
+                USER_ID,
+                CertificationSource.AFTER_SEARCH,
+                GUIDE_ID,
+                "투명 페트병",
+                "플라스틱",
+                100,
+                template()
+        );
+        CertificationVlmResult result = new CertificationVlmResult(
+                AiJudgementResult.PASS,
+                "분리배출 기준을 충족합니다.",
+                List.of(),
+                "{\"result\":\"PASS\"}"
+        );
+        PointException pointFailure = new PointException(
+                PointErrorCode.DAILY_EARN_LIMIT_EXCEEDED
+        );
+        doThrow(pointFailure).when(pointService).earnPoint(
+                USER_ID,
+                105L,
+                CertificationSource.AFTER_SEARCH,
+                "certification:105:earn"
+        );
+
+        assertThatThrownBy(() -> service.completeJudgement(context, result))
+                .isSameAs(pointFailure);
+
+        verify(aiJudgementRepository).save(any(AiJudgement.class));
+        verify(pointService).earnPoint(
+                USER_ID,
+                105L,
+                CertificationSource.AFTER_SEARCH,
+                "certification:105:earn"
         );
     }
 

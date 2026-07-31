@@ -1,6 +1,7 @@
 package com.redo.domain.certification.dto.res;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.redo.domain.certification.enums.CertificationRestrictionType;
 
 import java.time.LocalDateTime;
 
@@ -33,7 +34,7 @@ public record CertificationErrorDetail(
             long usedCount
     ) {
         return new CertificationErrorDetail(
-                "DAILY_LIMIT_EXCEEDED",
+                CertificationRestrictionType.DAILY_LIMIT_EXCEEDED.name(),
                 dailyLimit,
                 usedCount,
                 null,
@@ -49,7 +50,7 @@ public record CertificationErrorDetail(
             long remainingSeconds
     ) {
         return new CertificationErrorDetail(
-                "COOLDOWN",
+                CertificationRestrictionType.COOLDOWN.name(),
                 null,
                 null,
                 retryAvailableAt,
@@ -65,7 +66,7 @@ public record CertificationErrorDetail(
             String statusPath
     ) {
         return new CertificationErrorDetail(
-                "PROCESSING_EXISTS",
+                CertificationRestrictionType.PROCESSING_EXISTS.name(),
                 null,
                 null,
                 null,

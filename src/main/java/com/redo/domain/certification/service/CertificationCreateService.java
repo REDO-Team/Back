@@ -81,10 +81,11 @@ public class CertificationCreateService {
 
         CompletableFuture<CertificationCreateResponseDTO> response =
                 new CompletableFuture<>();
+        Object completionMonitor = new Object();
         ScheduledFuture<?> timeoutTask;
         try {
             timeoutTask = timeoutScheduler.schedule(
-                    () -> timeout(command, response),
+                    () -> timeout(command, response, completionMonitor),
                     Instant.now().plus(properties.timeout())
             );
         } catch (TaskRejectedException exception) {
@@ -94,7 +95,11 @@ public class CertificationCreateService {
         response.whenComplete((ignored, throwable) -> timeoutTask.cancel(false));
 
         try {
-            judgementExecutor.execute(() -> process(command, response));
+            judgementExecutor.execute(() -> process(
+                    command,
+                    response,
+                    completionMonitor
+            ));
         } catch (TaskRejectedException exception) {
             timeoutTask.cancel(false);
             cleanup(command);
@@ -105,25 +110,48 @@ public class CertificationCreateService {
 
     private void process(
             CertificationJudgementCommand command,
-            CompletableFuture<CertificationCreateResponseDTO> response
+            CompletableFuture<CertificationCreateResponseDTO> response,
+            Object completionMonitor
     ) {
+        CertificationCreateResponseDTO result;
         try {
-            response.complete(judgementProcessor.process(command));
-        } catch (Throwable exception) {
-            cleanup(command);
-            response.completeExceptionally(exception);
+            result = judgementProcessor.process(command);
+        } catch (Exception exception) {
+            fail(command, response, completionMonitor, exception);
+            return;
+        } catch (Error error) {
+            log.error(
+                    "Fatal error during certification judgement. certificationId={}",
+                    command.certificationId(),
+                    error
+            );
+            fail(command, response, completionMonitor, error);
+            throw error;
+        }
+
+        synchronized (completionMonitor) {
+            response.complete(result);
         }
     }
 
     private void timeout(
             CertificationJudgementCommand command,
-            CompletableFuture<CertificationCreateResponseDTO> response
+            CompletableFuture<CertificationCreateResponseDTO> response,
+            Object completionMonitor
     ) {
-        if (response.isDone()) {
-            return;
+        CleanupResult cleanupResult;
+        synchronized (completionMonitor) {
+            if (response.isDone()) {
+                return;
+            }
+
+            cleanupResult = deleteProcessing(command);
+            if (cleanupResult == CleanupResult.NOT_PROCESSING) {
+                return;
+            }
+            response.completeExceptionally(new GeminiException(TIMEOUT));
         }
-        cleanup(command);
-        response.completeExceptionally(new GeminiException(TIMEOUT));
+        compensateDeletedImage(command, cleanupResult);
     }
 
     private CertificationSource parseAndValidateSourceGuide(
@@ -165,16 +193,47 @@ public class CertificationCreateService {
     }
 
     private void cleanup(CertificationJudgementCommand command) {
-        try {
-            if (transactionService.deleteIfProcessing(command)) {
-                compensateImage(command.imageKey());
+        compensateDeletedImage(command, deleteProcessing(command));
+    }
+
+    private void fail(
+            CertificationJudgementCommand command,
+            CompletableFuture<CertificationCreateResponseDTO> response,
+            Object completionMonitor,
+            Throwable exception
+    ) {
+        CleanupResult cleanupResult;
+        synchronized (completionMonitor) {
+            if (response.isDone()) {
+                return;
             }
+            cleanupResult = deleteProcessing(command);
+            response.completeExceptionally(exception);
+        }
+        compensateDeletedImage(command, cleanupResult);
+    }
+
+    private CleanupResult deleteProcessing(CertificationJudgementCommand command) {
+        try {
+            return transactionService.deleteIfProcessing(command)
+                    ? CleanupResult.DELETED
+                    : CleanupResult.NOT_PROCESSING;
         } catch (RuntimeException cleanupException) {
             log.error(
                     "Failed to clean up processing certification. certificationId={}",
                     command.certificationId(),
                     cleanupException
             );
+            return CleanupResult.FAILED;
+        }
+    }
+
+    private void compensateDeletedImage(
+            CertificationJudgementCommand command,
+            CleanupResult cleanupResult
+    ) {
+        if (cleanupResult == CleanupResult.DELETED) {
+            compensateImage(command.imageKey());
         }
     }
 
@@ -188,5 +247,11 @@ public class CertificationCreateService {
                     compensationException
             );
         }
+    }
+
+    private enum CleanupResult {
+        DELETED,
+        NOT_PROCESSING,
+        FAILED
     }
 }

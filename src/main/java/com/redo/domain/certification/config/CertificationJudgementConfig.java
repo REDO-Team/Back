@@ -28,9 +28,11 @@ public class CertificationJudgementConfig {
     }
 
     @Bean
-    ThreadPoolTaskScheduler certificationTimeoutScheduler() {
+    ThreadPoolTaskScheduler certificationTimeoutScheduler(
+            CertificationJudgementProperties properties
+    ) {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(1);
+        scheduler.setPoolSize(properties.timeoutSchedulerPoolSize());
         scheduler.setThreadNamePrefix("certification-timeout-");
         scheduler.setWaitForTasksToCompleteOnShutdown(false);
         return scheduler;

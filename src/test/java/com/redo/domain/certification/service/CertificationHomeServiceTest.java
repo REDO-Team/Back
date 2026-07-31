@@ -80,6 +80,27 @@ class CertificationHomeServiceTest {
     }
 
     @Test
+    void mapsProcessingRecoveryFields() {
+        when(policyEvaluator.evaluate(USER_ID)).thenReturn(new CertificationPolicyResult(
+                1,
+                CertificationRestrictionType.PROCESSING_EXISTS,
+                null,
+                0,
+                77L,
+                "/api/certification/77/status"
+        ));
+
+        CertificationHomeResponseDTO response = certificationHomeService.getHome(USER_ID);
+
+        assertThat(response.canCertify()).isFalse();
+        assertThat(response.restriction().type())
+                .isEqualTo(CertificationRestrictionType.PROCESSING_EXISTS);
+        assertThat(response.restriction().processingCertificationId()).isEqualTo(77L);
+        assertThat(response.restriction().statusPath())
+                .isEqualTo("/api/certification/77/status");
+    }
+
+    @Test
     void remainingCountNeverBecomesNegative() {
         when(policyEvaluator.evaluate(USER_ID)).thenReturn(new CertificationPolicyResult(
                 4,

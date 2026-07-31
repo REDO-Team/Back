@@ -21,6 +21,7 @@ import com.redo.global.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -34,6 +35,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -164,6 +166,8 @@ class CertificationControllerTest {
                 .andExpect(jsonPath("$.result.earnedPoint").value(50))
                 .andExpect(jsonPath("$.result.pollingIntervalSeconds").doesNotExist())
                 .andExpect(jsonPath("$.result.statusPath").doesNotExist());
+
+        assertGeneralCreateRequestWasBound();
     }
 
     @Test
@@ -195,6 +199,8 @@ class CertificationControllerTest {
                         .value("VLM_JUDGEMENT_FAILED"))
                 .andExpect(jsonPath("$.result.earnedPoint").value(0))
                 .andExpect(jsonPath("$.result.retryAllowed").value(true));
+
+        assertGeneralCreateRequestWasBound();
     }
 
     @Test
@@ -228,6 +234,8 @@ class CertificationControllerTest {
                 .andExpect(jsonPath("$.errorDetail.certificationId").value(99))
                 .andExpect(jsonPath("$.errorDetail.statusPath")
                         .value("/api/certification/99/status"));
+
+        assertGeneralCreateRequestWasBound();
     }
 
     @Test
@@ -258,11 +266,25 @@ class CertificationControllerTest {
                 .andExpect(status().isGatewayTimeout())
                 .andExpect(jsonPath("$.isSuccess").value(false))
                 .andExpect(jsonPath("$.code").value("GEMINI_504_001"));
+
+        assertGeneralCreateRequestWasBound();
     }
 
     private void stubAuthentication() {
         when(jwtUtil.validateToken(ACCESS_TOKEN)).thenReturn(true);
         when(jwtUtil.getUserIdFromToken(ACCESS_TOKEN)).thenReturn(USER_ID);
+    }
+
+    private void assertGeneralCreateRequestWasBound() {
+        ArgumentCaptor<CertificationCreateRequestDTO> requestCaptor =
+                ArgumentCaptor.forClass(CertificationCreateRequestDTO.class);
+        verify(certificationCreateService).create(eq(USER_ID), requestCaptor.capture());
+
+        CertificationCreateRequestDTO request = requestCaptor.getValue();
+        assertThat(request.certificationSource()).isEqualTo("GENERAL");
+        assertThat(request.recycleGuideId()).isNull();
+        assertThat(request.image()).isNotNull();
+        assertThat(request.image().getOriginalFilename()).isEqualTo("can.jpg");
     }
 
     private CertificationHomeResponseDTO homeResponse(

@@ -281,28 +281,30 @@ public class CertificationTransactionService {
         if (policy.type() == CertificationRestrictionType.NONE) {
             return;
         }
-        if (policy.type() == CertificationRestrictionType.DAILY_LIMIT_EXCEEDED) {
-            throw new CertificationException(
+
+        throw switch (policy.type()) {
+            case DAILY_LIMIT_EXCEEDED -> new CertificationException(
                     DAILY_LIMIT_EXCEEDED,
                     CertificationErrorDetail.dailyLimit(DAILY_LIMIT, policy.usedCount())
             );
-        }
-        if (policy.type() == CertificationRestrictionType.PROCESSING_EXISTS) {
-            throw new CertificationException(
+            case PROCESSING_EXISTS -> new CertificationException(
                     PROCESSING_EXISTS,
                     CertificationErrorDetail.processing(
                             policy.processingCertificationId(),
                             policy.statusPath()
                     )
             );
-        }
-        throw new CertificationException(
-                COOLDOWN,
-                CertificationErrorDetail.cooldown(
-                        policy.retryAvailableAt(),
-                        policy.remainingSeconds()
-                )
-        );
+            case COOLDOWN -> new CertificationException(
+                    COOLDOWN,
+                    CertificationErrorDetail.cooldown(
+                            policy.retryAvailableAt(),
+                            policy.remainingSeconds()
+                    )
+            );
+            case NONE -> throw new IllegalStateException(
+                    "NONE restriction must not create an exception"
+            );
+        };
     }
 
     private CertificationCreateResponseDTO toDuplicateResponse(

@@ -38,8 +38,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -86,7 +88,8 @@ class CertificationCreateServiceTest {
                         Duration.ofSeconds(5),
                         1,
                         1,
-                        1
+                        1,
+                        4
                 )
         );
     }
@@ -257,6 +260,45 @@ class CertificationCreateServiceTest {
     }
 
     @Test
+    void returnsWorkerResultWhenTimeoutFindsTerminalState() throws Exception {
+        CertificationJudgementCommand command = command(
+                CertificationSource.GENERAL,
+                null
+        );
+        CountDownLatch workerStarted = new CountDownLatch(1);
+        CountDownLatch releaseWorker = new CountDownLatch(1);
+        when(imageStorage.upload(eq(USER_ID), any())).thenReturn(IMAGE_KEY);
+        when(transactionService.createProcessing(
+                USER_ID,
+                CertificationSource.GENERAL,
+                null,
+                IMAGE_KEY
+        )).thenReturn(command);
+        when(judgementProcessor.process(command)).thenAnswer(invocation -> {
+            workerStarted.countDown();
+            releaseWorker.await(3, TimeUnit.SECONDS);
+            return passedResponse();
+        });
+        when(transactionService.deleteIfProcessing(command)).thenReturn(false);
+
+        CompletableFuture<CertificationCreateResponseDTO> response = service.create(
+                USER_ID,
+                request("GENERAL", null)
+        );
+        ArgumentCaptor<Runnable> timeoutCaptor =
+                ArgumentCaptor.forClass(Runnable.class);
+        verify(timeoutScheduler).schedule(timeoutCaptor.capture(), any(Instant.class));
+        assertThat(workerStarted.await(1, TimeUnit.SECONDS)).isTrue();
+
+        timeoutCaptor.getValue().run();
+        assertThat(response).isNotDone();
+        releaseWorker.countDown();
+
+        assertThat(response.join()).isEqualTo(passedResponse());
+        verify(imageStorage, never()).delete(IMAGE_KEY);
+    }
+
+    @Test
     void rejectsOverloadedSchedulerAndCompensatesIntake() {
         CertificationJudgementCommand command = command(
                 CertificationSource.GENERAL,
@@ -281,6 +323,53 @@ class CertificationCreateServiceTest {
                 .extracting("errorCode")
                 .isEqualTo(CertificationErrorCode.JUDGEMENT_OVERLOADED);
 
+        verify(transactionService).deleteIfProcessing(command);
+        verify(imageStorage).delete(IMAGE_KEY);
+        verifyNoInteractions(judgementProcessor);
+    }
+
+    @Test
+    void rejectsOverloadedExecutorAndCompensatesIntake() {
+        CertificationJudgementCommand command = command(
+                CertificationSource.GENERAL,
+                null
+        );
+        ThreadPoolTaskExecutor rejectedExecutor = mock(ThreadPoolTaskExecutor.class);
+        CertificationCreateService rejectedService = new CertificationCreateService(
+                transactionService,
+                imageStorage,
+                judgementProcessor,
+                rejectedExecutor,
+                timeoutScheduler,
+                new CertificationJudgementProperties(
+                        Duration.ofSeconds(5),
+                        1,
+                        1,
+                        1,
+                        4
+                )
+        );
+        when(imageStorage.upload(eq(USER_ID), any())).thenReturn(IMAGE_KEY);
+        when(transactionService.createProcessing(
+                USER_ID,
+                CertificationSource.GENERAL,
+                null,
+                IMAGE_KEY
+        )).thenReturn(command);
+        when(transactionService.deleteIfProcessing(command)).thenReturn(true);
+        doThrow(new TaskRejectedException("executor saturated"))
+                .when(rejectedExecutor)
+                .execute(any(Runnable.class));
+
+        assertThatThrownBy(() -> rejectedService.create(
+                USER_ID,
+                request("GENERAL", null)
+        ))
+                .isInstanceOf(CertificationException.class)
+                .extracting("errorCode")
+                .isEqualTo(CertificationErrorCode.JUDGEMENT_OVERLOADED);
+
+        verify(timeoutTask).cancel(false);
         verify(transactionService).deleteIfProcessing(command);
         verify(imageStorage).delete(IMAGE_KEY);
         verifyNoInteractions(judgementProcessor);

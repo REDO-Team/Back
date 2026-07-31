@@ -4,6 +4,7 @@ import com.redo.domain.certification.dto.res.CertificationErrorDetail;
 import com.redo.domain.certification.exception.CertificationException;
 import com.redo.global.s3.config.S3Properties;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.exception.SdkException;
@@ -13,6 +14,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.IMAGE_READ_FAILED;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class S3CertificationImageReader implements CertificationImageReader {
@@ -34,6 +36,11 @@ public class S3CertificationImageReader implements CertificationImageReader {
                     object.asByteArray()
             );
         } catch (SdkException | IllegalArgumentException exception) {
+            log.error(
+                    "Failed to read certification image from S3. key={}",
+                    imageKey,
+                    exception
+            );
             throw new CertificationException(
                     IMAGE_READ_FAILED,
                     CertificationErrorDetail.type("IMAGE_READ_FAILED")
