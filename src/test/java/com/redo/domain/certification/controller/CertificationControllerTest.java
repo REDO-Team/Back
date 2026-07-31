@@ -1,9 +1,11 @@
 package com.redo.domain.certification.controller;
 
 import com.redo.domain.certification.dto.req.CertificationCreateRequestDTO;
+import com.redo.domain.certification.dto.req.CertificationRetryRequestDTO;
 import com.redo.domain.certification.dto.res.CertificationCreateResponseDTO;
 import com.redo.domain.certification.dto.res.CertificationErrorDetail;
 import com.redo.domain.certification.dto.res.CertificationHomeResponseDTO;
+import com.redo.domain.certification.dto.res.CertificationRetryResponseDTO;
 import com.redo.domain.certification.enums.CertificationFailureType;
 import com.redo.domain.certification.enums.CertificationRestrictionType;
 import com.redo.domain.certification.enums.CertificationStatus;
@@ -11,6 +13,7 @@ import com.redo.domain.certification.exception.CertificationException;
 import com.redo.domain.certification.exception.code.CertificationErrorCode;
 import com.redo.domain.certification.service.CertificationCreateService;
 import com.redo.domain.certification.service.CertificationHomeService;
+import com.redo.domain.certification.service.CertificationRetryService;
 import com.redo.global.ai.gemini.exception.GeminiException;
 import com.redo.global.ai.gemini.exception.code.GeminiErrorCode;
 import com.redo.global.security.JwtAccessDeniedHandler;
@@ -71,6 +74,9 @@ class CertificationControllerTest {
 
     @MockitoBean
     private CertificationCreateService certificationCreateService;
+
+    @MockitoBean
+    private CertificationRetryService certificationRetryService;
 
     @MockitoBean
     private JwtUtil jwtUtil;
@@ -270,6 +276,111 @@ class CertificationControllerTest {
         assertGeneralCreateRequestWasBound();
     }
 
+    @Test
+    void returnsPassedResultFromLongRunningRetryRequest() throws Exception {
+        stubAuthentication();
+        when(certificationRetryService.retry(
+                eq(USER_ID),
+                eq(102L),
+                any(CertificationRetryRequestDTO.class)
+        )).thenReturn(CompletableFuture.completedFuture(retryPassedResponse()));
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "retry.jpg",
+                "image/jpeg",
+                "image".getBytes()
+        );
+
+        MvcResult pending = mockMvc.perform(multipart(
+                        "/api/certification/{certificationId}/retry",
+                        102L
+                )
+                        .file(image)
+                        .header("Authorization", "Bearer " + ACCESS_TOKEN))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(pending))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.code").value("CERTIFICATION200_10"))
+                .andExpect(jsonPath("$.result.certificationId").value(102))
+                .andExpect(jsonPath("$.result.status").value("PASSED"))
+                .andExpect(jsonPath("$.result.attemptCount").value(2))
+                .andExpect(jsonPath("$.result.earnedPoint").value(100))
+                .andExpect(jsonPath("$.result.pollingIntervalSeconds").doesNotExist())
+                .andExpect(jsonPath("$.result.statusPath").doesNotExist());
+
+        assertRetryRequestWasBound();
+    }
+
+    @Test
+    void returnsRetryVlmFailureAsCompleted200Result() throws Exception {
+        stubAuthentication();
+        when(certificationRetryService.retry(
+                eq(USER_ID),
+                eq(102L),
+                any(CertificationRetryRequestDTO.class)
+        )).thenReturn(CompletableFuture.completedFuture(retryFailedResponse()));
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "retry.jpg",
+                "image/jpeg",
+                "image".getBytes()
+        );
+
+        MvcResult pending = mockMvc.perform(multipart(
+                        "/api/certification/{certificationId}/retry",
+                        102L
+                )
+                        .file(image)
+                        .header("Authorization", "Bearer " + ACCESS_TOKEN))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(pending))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("CERTIFICATION200_11"))
+                .andExpect(jsonPath("$.result.status").value("FAILED"))
+                .andExpect(jsonPath("$.result.failureType")
+                        .value("VLM_JUDGEMENT_FAILED"))
+                .andExpect(jsonPath("$.result.attemptCount").value(2))
+                .andExpect(jsonPath("$.result.retryAllowed").value(true))
+                .andExpect(jsonPath("$.result.retryPath")
+                        .value("/api/certification/102/retry"));
+    }
+
+    @Test
+    void returnsTypedConflictWhenPassedCertificationIsRetried() throws Exception {
+        stubAuthentication();
+        when(certificationRetryService.retry(
+                eq(USER_ID),
+                eq(102L),
+                any(CertificationRetryRequestDTO.class)
+        )).thenThrow(new CertificationException(
+                CertificationErrorCode.PASSED_NOT_RETRYABLE,
+                CertificationErrorDetail.type("PASSED_NOT_RETRYABLE")
+        ));
+        MockMultipartFile image = new MockMultipartFile(
+                "image",
+                "retry.jpg",
+                "image/jpeg",
+                "image".getBytes()
+        );
+
+        mockMvc.perform(multipart(
+                        "/api/certification/{certificationId}/retry",
+                        102L
+                )
+                        .file(image)
+                        .header("Authorization", "Bearer " + ACCESS_TOKEN))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.isSuccess").value(false))
+                .andExpect(jsonPath("$.code").value("CERTIFICATION409_2"))
+                .andExpect(jsonPath("$.errorDetail.type")
+                        .value("PASSED_NOT_RETRYABLE"));
+    }
+
     private void stubAuthentication() {
         when(jwtUtil.validateToken(ACCESS_TOKEN)).thenReturn(true);
         when(jwtUtil.getUserIdFromToken(ACCESS_TOKEN)).thenReturn(USER_ID);
@@ -285,6 +396,20 @@ class CertificationControllerTest {
         assertThat(request.recycleGuideId()).isNull();
         assertThat(request.image()).isNotNull();
         assertThat(request.image().getOriginalFilename()).isEqualTo("can.jpg");
+    }
+
+    private void assertRetryRequestWasBound() {
+        ArgumentCaptor<CertificationRetryRequestDTO> requestCaptor =
+                ArgumentCaptor.forClass(CertificationRetryRequestDTO.class);
+        verify(certificationRetryService).retry(
+                eq(USER_ID),
+                eq(102L),
+                requestCaptor.capture()
+        );
+
+        CertificationRetryRequestDTO request = requestCaptor.getValue();
+        assertThat(request.image()).isNotNull();
+        assertThat(request.image().getOriginalFilename()).isEqualTo("retry.jpg");
     }
 
     private CertificationHomeResponseDTO homeResponse(
@@ -338,6 +463,42 @@ class CertificationControllerTest {
                 true,
                 "/api/certification/102/retry",
                 LocalDateTime.of(2026, 7, 31, 14, 3)
+        );
+    }
+
+    private CertificationRetryResponseDTO retryPassedResponse() {
+        return new CertificationRetryResponseDTO(
+                102L,
+                CertificationStatus.PASSED,
+                null,
+                2,
+                12L,
+                "투명 페트병",
+                "플라스틱",
+                100,
+                null,
+                List.of(),
+                false,
+                null,
+                LocalDateTime.of(2026, 7, 31, 14, 8)
+        );
+    }
+
+    private CertificationRetryResponseDTO retryFailedResponse() {
+        return new CertificationRetryResponseDTO(
+                102L,
+                CertificationStatus.FAILED,
+                CertificationFailureType.VLM_JUDGEMENT_FAILED,
+                2,
+                12L,
+                "투명 페트병",
+                "플라스틱",
+                0,
+                "이물질이 남아 있습니다.",
+                List.of("이물질을 제거한 뒤 다시 촬영해 주세요."),
+                true,
+                "/api/certification/102/retry",
+                LocalDateTime.of(2026, 7, 31, 14, 8)
         );
     }
 }

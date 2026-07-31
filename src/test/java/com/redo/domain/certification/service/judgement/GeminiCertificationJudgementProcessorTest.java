@@ -148,6 +148,40 @@ class GeminiCertificationJudgementProcessorTest {
     }
 
     @Test
+    void retryGeneralUsesExistingGuideWithoutClassification() {
+        CertificationJudgementCommand command = CertificationJudgementCommand.retry(
+                101L,
+                42L,
+                CertificationSource.GENERAL,
+                IMAGE_KEY,
+                12L
+        );
+        CertificationJudgementContext context = context();
+        when(transactionService.prepareJudgement(command, 12L))
+                .thenReturn(CertificationJudgementPreparation.ready(context));
+        when(geminiClient.generate(any(GeminiRequest.class)))
+                .thenReturn(response("""
+                        {
+                          "result": "PASS",
+                          "reason": "분리배출 기준을 충족했습니다.",
+                          "retryGuide": []
+                        }
+                        """));
+        CertificationCreateResponseDTO expected = passedResponse();
+        when(transactionService.completeJudgement(
+                any(CertificationJudgementContext.class),
+                any(CertificationVlmResult.class)
+        )).thenReturn(expected);
+
+        CertificationCreateResponseDTO result = processor.process(command);
+
+        assertThat(result).isSameAs(expected);
+        verify(recycleGuideRepository, never()).findAll();
+        verify(geminiClient).generate(any(GeminiRequest.class));
+        verify(transactionService).prepareJudgement(command, 12L);
+    }
+
+    @Test
     void rejectsInvalidStructuredJudgementAsSystemError() {
         CertificationJudgementCommand command =
                 command(CertificationSource.AFTER_SEARCH, 12L);

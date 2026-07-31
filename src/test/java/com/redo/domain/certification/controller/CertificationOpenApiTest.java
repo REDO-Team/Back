@@ -38,6 +38,9 @@ class CertificationOpenApiTest {
                 ).value(org.hamcrest.Matchers.containsString("정상 흐름에서는 polling하지 않습니다")))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].post.description"
+                ).value(org.hamcrest.Matchers.containsString("평균 30초")))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification'].post.description"
                 ).value(org.hamcrest.Matchers.containsString("CERTIFICATION503_1")))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].post.description"
@@ -51,5 +54,39 @@ class CertificationOpenApiTest {
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].post.description"
                 ).value(org.hamcrest.Matchers.containsString("POINT_400_004")));
+    }
+
+    @Test
+    void documentsRetryMultipartContractAndFrontendOutcomes() throws Exception {
+        mockMvc.perform(get("/v3/api-docs/03-certification"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification/{certificationId}/retry'].post"
+                ).exists())
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification/{certificationId}/retry']" +
+                                ".post.requestBody.content['multipart/form-data']"
+                ).exists())
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification/{certificationId}/retry'].post.description"
+                ).value(org.hamcrest.Matchers.containsString("CERTIFICATION200_10")))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification/{certificationId}/retry'].post.description"
+                ).value(org.hamcrest.Matchers.containsString("CERTIFICATION200_11")))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification/{certificationId}/retry'].post.description"
+                ).value(org.hamcrest.Matchers.containsString("5분 제한을 적용하지 않습니다")))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification/{certificationId}/retry'].post.description"
+                ).value(org.hamcrest.Matchers.containsString("평균 30초")))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification/{certificationId}/retry'].post.description"
+                ).value(org.hamcrest.Matchers.containsString("RETRY_NOT_ALLOWED")))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification/{certificationId}/retry'].post.description"
+                ).value(org.hamcrest.Matchers.containsString("attemptCount")))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification/{certificationId}/retry'].post.description"
+                ).value(org.hamcrest.Matchers.containsString("GEMINI_504_001")));
     }
 }

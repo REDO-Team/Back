@@ -146,6 +146,26 @@ public class Certification extends BaseEntity {
         this.failureType = null;
     }
 
+    public void restoreRetry(
+            String previousImageKey,
+            LocalDateTime previousJudgedAt,
+            int previousAttemptCount
+    ) {
+        if (status != CertificationStatus.PROCESSING
+                || attemptCount != previousAttemptCount + 1) {
+            throw new IllegalStateException("Only the current retry attempt can be restored");
+        }
+
+        this.imageKey = requireText(previousImageKey, "previousImageKey");
+        this.status = CertificationStatus.FAILED;
+        this.attemptCount = previousAttemptCount;
+        this.judgedAt = Objects.requireNonNull(
+                previousJudgedAt,
+                "previousJudgedAt must not be null"
+        );
+        this.failureType = CertificationFailureType.VLM_JUDGEMENT_FAILED;
+    }
+
     private static RecycleGuide validateRecycleGuide(
             CertificationSource certificationSource,
             RecycleGuide recycleGuide

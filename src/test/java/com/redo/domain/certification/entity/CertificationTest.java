@@ -119,6 +119,44 @@ class CertificationTest {
     }
 
     @Test
+    void restoreRetryReturnsToPreviousRetryableFailure() {
+        Certification certification = createCertification();
+        LocalDateTime previousJudgedAt = LocalDateTime.of(2026, 7, 31, 14, 3);
+        certification.complete(AiJudgementResult.FAIL, previousJudgedAt);
+        certification.retry("certification/retry.jpg");
+
+        certification.restoreRetry(
+                "certification/original.jpg",
+                previousJudgedAt,
+                1
+        );
+
+        assertThat(certification.getImageKey()).isEqualTo("certification/original.jpg");
+        assertThat(certification.getStatus()).isEqualTo(CertificationStatus.FAILED);
+        assertThat(certification.getAttemptCount()).isEqualTo(1);
+        assertThat(certification.getJudgedAt()).isEqualTo(previousJudgedAt);
+        assertThat(certification.getFailureType())
+                .isEqualTo(CertificationFailureType.VLM_JUDGEMENT_FAILED);
+    }
+
+    @Test
+    void restoreRetryRejectsCompletedAttempt() {
+        Certification certification = createCertification();
+        LocalDateTime previousJudgedAt = LocalDateTime.of(2026, 7, 31, 14, 3);
+        certification.complete(AiJudgementResult.FAIL, previousJudgedAt);
+        certification.retry("certification/retry.jpg");
+        certification.complete(AiJudgementResult.PASS, previousJudgedAt.plusMinutes(3));
+
+        assertThatThrownBy(() -> certification.restoreRetry(
+                "certification/original.jpg",
+                previousJudgedAt,
+                1
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Only the current retry attempt can be restored");
+    }
+
+    @Test
     void duplicateGuideFailureCannotBeRetried() {
         Certification certification = createCertification();
         certification.rejectDuplicateGuide(LocalDateTime.now());

@@ -41,6 +41,16 @@ public enum CertificationSuccessCode implements BaseSuccessCode {
             HttpStatus.CREATED,
             "CERTIFICATION201_1",
             "인증 검수가 완료되었습니다."
+    ),
+    RETRY_CERTIFICATION_PASSED(
+            HttpStatus.OK,
+            "CERTIFICATION200_10",
+            "재검수가 완료되었습니다."
+    ),
+    RETRY_CERTIFICATION_FAILED(
+            HttpStatus.OK,
+            "CERTIFICATION200_11",
+            "재검수가 완료되었습니다."
     );
 
     private final HttpStatus httpStatus;
@@ -62,6 +72,16 @@ public enum CertificationSuccessCode implements BaseSuccessCode {
             case FAILED -> CREATE_CERTIFICATION_FAILED;
             case PROCESSING -> throw new IllegalArgumentException(
                     "POST certification response must be terminal"
+            );
+        };
+    }
+
+    public static CertificationSuccessCode fromRetry(CertificationStatus status) {
+        return switch (status) {
+            case PASSED -> RETRY_CERTIFICATION_PASSED;
+            case FAILED -> RETRY_CERTIFICATION_FAILED;
+            case PROCESSING -> throw new IllegalArgumentException(
+                    "POST certification retry response must be terminal"
             );
         };
     }
