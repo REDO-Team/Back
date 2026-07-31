@@ -10,6 +10,11 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum CertificationErrorCode implements BaseErrorCode {
 
+    CERTIFICATION_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "CERTIFICATION404_0",
+            "인증을 찾을 수 없습니다."
+    ),
     INVALID_SOURCE_GUIDE_CONTRACT(
             HttpStatus.BAD_REQUEST,
             "CERTIFICATION400_1",
@@ -24,6 +29,21 @@ public enum CertificationErrorCode implements BaseErrorCode {
             HttpStatus.CONFLICT,
             "CERTIFICATION409_0",
             "진행 중인 인증이 있습니다."
+    ),
+    PASSED_NOT_RETRYABLE(
+            HttpStatus.CONFLICT,
+            "CERTIFICATION409_2",
+            "이미 성공한 인증은 재촬영할 수 없습니다."
+    ),
+    RETRY_PROCESSING(
+            HttpStatus.CONFLICT,
+            "CERTIFICATION409_3",
+            "해당 인증의 재검수가 이미 진행 중입니다."
+    ),
+    RETRY_NOT_ALLOWED(
+            HttpStatus.CONFLICT,
+            "CERTIFICATION409_4",
+            "재촬영할 수 없는 인증입니다."
     ),
     ACTIVE_TEMPLATE_NOT_FOUND(
             HttpStatus.PRECONDITION_FAILED,

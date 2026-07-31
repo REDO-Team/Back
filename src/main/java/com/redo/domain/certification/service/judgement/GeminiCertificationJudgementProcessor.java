@@ -10,7 +10,6 @@ import com.redo.domain.certification.dto.CertificationVlmResult;
 import com.redo.domain.certification.dto.res.CertificationCreateResponseDTO;
 import com.redo.domain.certification.dto.res.CertificationErrorDetail;
 import com.redo.domain.certification.enums.AiJudgementResult;
-import com.redo.domain.certification.enums.CertificationSource;
 import com.redo.domain.certification.exception.CertificationException;
 import com.redo.domain.certification.service.CertificationTransactionService;
 import com.redo.domain.certification.service.image.CertificationImageContent;
@@ -75,7 +74,7 @@ public class GeminiCertificationJudgementProcessor
             CertificationJudgementCommand command
     ) {
         CertificationImageContent image = imageReader.read(command.imageKey());
-        Long recycleGuideId = command.source() == CertificationSource.GENERAL
+        Long recycleGuideId = command.mode().classificationRequired()
                 ? classifyRecycleGuide(image)
                 : command.recycleGuideId();
 

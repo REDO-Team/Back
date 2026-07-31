@@ -5,12 +5,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redo.domain.certification.dto.CertificationJudgementCommand;
 import com.redo.domain.certification.dto.CertificationJudgementContext;
 import com.redo.domain.certification.dto.CertificationJudgementPreparation;
+import com.redo.domain.certification.dto.CertificationRetryIntake;
+import com.redo.domain.certification.dto.CertificationRetrySnapshot;
 import com.redo.domain.certification.dto.CertificationVlmResult;
 import com.redo.domain.certification.dto.res.CertificationCreateResponseDTO;
 import com.redo.domain.certification.dto.res.CertificationErrorDetail;
 import com.redo.domain.certification.entity.AiJudgement;
 import com.redo.domain.certification.entity.Certification;
 import com.redo.domain.certification.enums.CertificationRestrictionType;
+import com.redo.domain.certification.enums.CertificationFailureType;
+import com.redo.domain.certification.enums.AiJudgementResult;
 import com.redo.domain.certification.enums.CertificationSource;
 import com.redo.domain.certification.enums.CertificationStatus;
 import com.redo.domain.certification.exception.CertificationException;
@@ -35,14 +39,19 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 import static com.redo.domain.certification.config.CertificationTimeConfig.CERTIFICATION_CLOCK;
 import static com.redo.domain.certification.config.CertificationTimeConfig.SEOUL_ZONE;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.ACTIVE_TEMPLATE_NOT_FOUND;
+import static com.redo.domain.certification.exception.code.CertificationErrorCode.CERTIFICATION_NOT_FOUND;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.COOLDOWN;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.DAILY_LIMIT_EXCEEDED;
+import static com.redo.domain.certification.exception.code.CertificationErrorCode.PASSED_NOT_RETRYABLE;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.PROCESSING_EXISTS;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.RECYCLE_GUIDE_NOT_FOUND;
+import static com.redo.domain.certification.exception.code.CertificationErrorCode.RETRY_NOT_ALLOWED;
+import static com.redo.domain.certification.exception.code.CertificationErrorCode.RETRY_PROCESSING;
 import static com.redo.domain.certification.service.policy.CertificationPolicyEvaluator.DAILY_LIMIT;
 
 @Service
@@ -94,6 +103,14 @@ public class CertificationTransactionService {
         requireActiveTemplate(recycleGuideId);
     }
 
+    @Transactional(readOnly = true)
+    public void validateRetryPrerequisites(Long userId, Long certificationId) {
+        Certification certification = requireOwnedCertification(userId, certificationId);
+        validateRetryState(certification);
+        RecycleGuide recycleGuide = requireCertificationGuide(certification);
+        requireActiveTemplate(recycleGuide.getId());
+    }
+
     @Transactional
     public CertificationJudgementCommand createProcessing(
             Long userId,
@@ -128,17 +145,57 @@ public class CertificationTransactionService {
     }
 
     @Transactional
+    public CertificationRetryIntake startRetry(
+            Long userId,
+            Long certificationId,
+            String imageKey
+    ) {
+        userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new GeneralException(UserErrorCode.USER_NOT_FOUND));
+        Certification certification = requireOwnedCertificationForUpdate(
+                userId,
+                certificationId
+        );
+        validateRetryState(certification);
+        enforceRetryPolicy(policyEvaluator.evaluate(userId));
+
+        RecycleGuide recycleGuide = requireCertificationGuide(certification);
+        requireActiveTemplate(recycleGuide.getId());
+
+        CertificationRetrySnapshot snapshot = new CertificationRetrySnapshot(
+                certification.getImageKey(),
+                certification.getJudgedAt(),
+                certification.getAttemptCount()
+        );
+        certification.retry(imageKey);
+        certificationRepository.flush();
+
+        CertificationJudgementCommand command = CertificationJudgementCommand.retry(
+                certification.getId(),
+                userId,
+                certification.getCertificationSource(),
+                imageKey,
+                recycleGuide.getId()
+        );
+        return new CertificationRetryIntake(
+                command,
+                snapshot,
+                certification.getAttemptCount()
+        );
+    }
+
+    @Transactional
     public CertificationJudgementPreparation prepareJudgement(
             CertificationJudgementCommand command,
             Long classifiedRecycleGuideId
     ) {
         Certification certification = requireProcessing(command);
         RecycleGuide recycleGuide;
-        if (command.source() == CertificationSource.GENERAL) {
+        if (command.mode().classificationRequired()) {
             recycleGuide = requireGuide(classifiedRecycleGuideId);
             certification.assignRecycleGuide(recycleGuide);
         } else {
-            recycleGuide = certification.getRecycleGuide();
+            recycleGuide = requireCertificationGuide(certification);
         }
 
         LocalDateTime now = now();
@@ -171,7 +228,8 @@ public class CertificationTransactionService {
                         ? null
                         : recycleGuide.getRecycleCategory().getName(),
                 certification.getRewardPoint(),
-                template
+                template,
+                command.mode()
         ));
     }
 
@@ -180,6 +238,10 @@ public class CertificationTransactionService {
             CertificationJudgementContext context,
             CertificationVlmResult result
     ) {
+        if (context.mode().retry() && result.result() == AiJudgementResult.PASS) {
+            userRepository.findByIdForUpdate(context.userId())
+                    .orElseThrow(() -> new GeneralException(UserErrorCode.USER_NOT_FOUND));
+        }
         Certification certification = certificationRepository
                 .findByIdAndUserIdForUpdate(
                         context.certificationId(),
@@ -190,6 +252,14 @@ public class CertificationTransactionService {
                         "Certification is no longer processing"
                 ));
         LocalDateTime judgedAt = now();
+
+        if (context.mode().retry() && result.result() == AiJudgementResult.PASS) {
+            CertificationCreateResponseDTO policyResult =
+                    enforceRetryPassPolicy(certification, judgedAt);
+            if (policyResult != null) {
+                return policyResult;
+            }
+        }
         String retryGuideJson = toJson(result.retryGuide());
 
         aiJudgementRepository.save(AiJudgement.create(
@@ -243,6 +313,30 @@ public class CertificationTransactionService {
                 .orElse(false);
     }
 
+    @Transactional
+    public boolean restoreRetryIfProcessing(CertificationRetryIntake intake) {
+        CertificationJudgementCommand command = intake.command();
+        return certificationRepository
+                .findByIdAndUserIdForUpdate(
+                        command.certificationId(),
+                        command.userId()
+                )
+                .filter(value -> value.getStatus() == CertificationStatus.PROCESSING)
+                .filter(value -> Objects.equals(value.getImageKey(), command.imageKey()))
+                .filter(value -> value.getAttemptCount() == intake.attemptCount())
+                .map(value -> {
+                    CertificationRetrySnapshot snapshot = intake.snapshot();
+                    value.restoreRetry(
+                            snapshot.imageKey(),
+                            snapshot.judgedAt(),
+                            snapshot.attemptCount()
+                    );
+                    certificationRepository.flush();
+                    return true;
+                })
+                .orElse(false);
+    }
+
     private Certification requireProcessing(CertificationJudgementCommand command) {
         return certificationRepository
                 .findByIdAndUserIdForUpdate(
@@ -253,6 +347,58 @@ public class CertificationTransactionService {
                 .orElseThrow(() -> new IllegalStateException(
                         "Certification is no longer processing"
                 ));
+    }
+
+    private Certification requireOwnedCertification(Long userId, Long certificationId) {
+        return certificationRepository.findByIdAndUserId(certificationId, userId)
+                .orElseThrow(this::certificationNotFound);
+    }
+
+    private Certification requireOwnedCertificationForUpdate(
+            Long userId,
+            Long certificationId
+    ) {
+        return certificationRepository.findByIdAndUserIdForUpdate(certificationId, userId)
+                .orElseThrow(this::certificationNotFound);
+    }
+
+    private CertificationException certificationNotFound() {
+        return new CertificationException(
+                CERTIFICATION_NOT_FOUND,
+                CertificationErrorDetail.type("CERTIFICATION_NOT_FOUND")
+        );
+    }
+
+    private void validateRetryState(Certification certification) {
+        if (certification.getStatus() == CertificationStatus.PASSED) {
+            throw new CertificationException(
+                    PASSED_NOT_RETRYABLE,
+                    CertificationErrorDetail.type("PASSED_NOT_RETRYABLE")
+            );
+        }
+        if (certification.getStatus() == CertificationStatus.PROCESSING) {
+            throw new CertificationException(
+                    RETRY_PROCESSING,
+                    CertificationErrorDetail.type("RETRY_PROCESSING")
+            );
+        }
+        if (certification.getFailureType()
+                != CertificationFailureType.VLM_JUDGEMENT_FAILED) {
+            throw new CertificationException(
+                    RETRY_NOT_ALLOWED,
+                    CertificationErrorDetail.type("RETRY_NOT_ALLOWED")
+            );
+        }
+    }
+
+    private RecycleGuide requireCertificationGuide(Certification certification) {
+        if (certification.getRecycleGuide() != null) {
+            return certification.getRecycleGuide();
+        }
+        throw new CertificationException(
+                RECYCLE_GUIDE_NOT_FOUND,
+                CertificationErrorDetail.type("RECYCLE_GUIDE_NOT_FOUND")
+        );
     }
 
     private RecycleGuide requireGuide(Long recycleGuideId) {
@@ -305,6 +451,51 @@ public class CertificationTransactionService {
                     "NONE restriction must not create an exception"
             );
         };
+    }
+
+    private void enforceRetryPolicy(CertificationPolicyResult policy) {
+        if (policy.type() == CertificationRestrictionType.DAILY_LIMIT_EXCEEDED
+                || policy.type() == CertificationRestrictionType.PROCESSING_EXISTS) {
+            enforcePolicy(policy);
+        }
+    }
+
+    private CertificationCreateResponseDTO enforceRetryPassPolicy(
+            Certification certification,
+            LocalDateTime judgedAt
+    ) {
+        LocalDate today = judgedAt.toLocalDate();
+        LocalDateTime startAt = today.atStartOfDay();
+        LocalDateTime endAt = today.plusDays(1).atStartOfDay();
+        long usedCount = certificationRepository
+                .countByUserIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
+                        certification.getUser().getId(),
+                        CertificationStatus.PASSED,
+                        startAt,
+                        endAt
+                );
+        if (usedCount >= DAILY_LIMIT) {
+            throw new CertificationException(
+                    DAILY_LIMIT_EXCEEDED,
+                    CertificationErrorDetail.dailyLimit(DAILY_LIMIT, usedCount)
+            );
+        }
+
+        RecycleGuide recycleGuide = requireCertificationGuide(certification);
+        boolean duplicate = certificationRepository
+                .existsByUserIdAndRecycleGuideIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
+                        certification.getUser().getId(),
+                        recycleGuide.getId(),
+                        CertificationStatus.PASSED,
+                        startAt,
+                        endAt
+                );
+        if (!duplicate) {
+            return null;
+        }
+
+        certification.rejectDuplicateGuide(judgedAt);
+        return toDuplicateResponse(certification, recycleGuide);
     }
 
     private CertificationCreateResponseDTO toDuplicateResponse(
