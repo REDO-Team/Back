@@ -4,10 +4,13 @@ import java.time.LocalDateTime;
 
 public record CommunityResponseDTO(
         Long id,
-        String category,
-        String title,
-        String imageUrl,
         Long numComments,
-        LocalDateTime createdAt
+        Integer numLikes,
+        LocalDateTime createdAt,
+        String imageUrl,
+        String title,
+        String category,
+        String preview,
+        String writer
 ) {
 }

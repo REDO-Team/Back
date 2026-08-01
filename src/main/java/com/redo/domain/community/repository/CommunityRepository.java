@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface CommunityRepository extends JpaRepository<Community, Long> {
@@ -18,6 +19,22 @@ public interface CommunityRepository extends JpaRepository<Community, Long> {
     Page<Community> findByCategoryAndDeletedAtIsNull(CommunityCategory category, Pageable pageable);
 
     Optional<Community> findByIdAndDeletedAtIsNull(Long id);
+
+    // 목록 조회용: 게시글별 작성자 닉네임을 단건 쿼리 반복 없이 한 번에 조회한다.
+    // 프로필이 없는 사용자도 게시글은 조회되어야 하므로 UserProfile 은 LEFT JOIN 한다.
+    @Query("""
+            SELECT c.id AS communityId, p.nickname AS nickname
+            FROM Community c
+            LEFT JOIN UserProfile p ON p.user = c.user
+            WHERE c IN :communities
+            """)
+    List<CommunityWriter> findWritersByCommunities(@Param("communities") List<Community> communities);
+
+    // 게시글별 작성자 닉네임 조회 결과 projection
+    interface CommunityWriter {
+        Long getCommunityId();
+        String getNickname();
+    }
 
     // 동시 요청에서 갱신 유실(Lost Update)이 발생하지 않도록 좋아요 수를 DB에서 원자적으로 증가시킨다.
     @Modifying(flushAutomatically = true, clearAutomatically = true)

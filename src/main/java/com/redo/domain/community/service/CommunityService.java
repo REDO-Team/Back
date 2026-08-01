@@ -70,11 +70,13 @@ public class CommunityService {
 
         Map<Long, Long> commentCounts = getCommentCounts(communities.getContent());
         Map<Long, String> representativeImageKeys = getRepresentativeImageKeys(communities.getContent());
+        Map<Long, String> writers = getWriters(communities.getContent());
 
         return communities.map(community -> CommunityConverter.toCommunityResponse(
                 community,
                 commentCounts.getOrDefault(community.getId(), 0L),
-                createImageUrl(representativeImageKeys.get(community.getId()))
+                createImageUrl(representativeImageKeys.get(community.getId())),
+                writers.get(community.getId())
         ));
     }
 
@@ -263,6 +265,21 @@ public class CommunityService {
                 .collect(Collectors.toMap(
                         CommunityCommentRepository.CommunityCommentCount::getCommunityId,
                         CommunityCommentRepository.CommunityCommentCount::getCommentCount
+                ));
+    }
+
+    // 목록의 게시글별 작성자 닉네임을 한 번의 쿼리로 조회하는 로직
+    private Map<Long, String> getWriters(List<Community> communities) {
+        if (communities.isEmpty()) {
+            return Map.of();
+        }
+
+        return communityRepository.findWritersByCommunities(communities).stream()
+                // 프로필이 없어 닉네임이 null 인 경우 Map 수집에서 제외한다(조회 시 null 로 응답된다).
+                .filter(writer -> writer.getNickname() != null)
+                .collect(Collectors.toMap(
+                        CommunityRepository.CommunityWriter::getCommunityId,
+                        CommunityRepository.CommunityWriter::getNickname
                 ));
     }
 

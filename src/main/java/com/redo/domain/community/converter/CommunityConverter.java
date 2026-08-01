@@ -26,18 +26,41 @@ public class CommunityConverter {
     // 신규 게시글의 기본 상태값. status 컬럼은 NOT NULL 이지만 별도 enum/용도가 정의되지 않아 기본값으로 저장한다.
     private static final String DEFAULT_STATUS = "ACTIVE";
 
+    // 목록의 본문 미리보기 노출 길이. 이 길이를 넘으면 잘라내고 말줄임표를 붙인다.
+    private static final int PREVIEW_LENGTH = 20;
+    private static final String PREVIEW_ELLIPSIS = "...";
+
     private CommunityConverter() {
     }
 
-    public static CommunityResponseDTO toCommunityResponse(Community community, long numComments, String imageUrl) {
+    public static CommunityResponseDTO toCommunityResponse(
+            Community community,
+            long numComments,
+            String imageUrl,
+            String writer
+    ) {
         return new CommunityResponseDTO(
                 community.getId(),
-                String.valueOf(community.getCategory().getCode()),
-                community.getTitle(),
-                imageUrl,
                 numComments,
-                community.getCreatedAt()
+                community.getLikeCount() == null ? 0 : community.getLikeCount(),
+                community.getCreatedAt(),
+                imageUrl,
+                community.getTitle(),
+                String.valueOf(community.getCategory().getCode()),
+                toPreview(community.getContent()),
+                writer
         );
+    }
+
+    // 본문을 목록용 미리보기로 변환하는 로직
+    private static String toPreview(String content) {
+        if (content == null) {
+            return null;
+        }
+        if (content.length() <= PREVIEW_LENGTH) {
+            return content;
+        }
+        return content.substring(0, PREVIEW_LENGTH) + PREVIEW_ELLIPSIS;
     }
 
     public static CommunityDetailResponseDTO toCommunityDetailResponse(
