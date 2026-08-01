@@ -108,7 +108,7 @@ management:
       application: ${spring.application.name}
 
 app:
-  base-url: http://13.209.188.93:8080
+  base-url: ${APP_BASE_URL:http://localhost:8080}
   ai:
     gemini:
       enabled: ${GEMINI_ENABLED:false}
