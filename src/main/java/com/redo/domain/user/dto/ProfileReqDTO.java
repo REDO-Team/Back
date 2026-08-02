@@ -26,4 +26,9 @@ public class ProfileReqDTO {
             LocalDate birthDate
     ) {}
 
+    public record UpdateCharacter(
+            @NotBlank
+            String characterCode
+    ) {}
+
 }

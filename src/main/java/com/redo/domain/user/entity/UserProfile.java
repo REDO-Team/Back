@@ -33,7 +33,7 @@ public class UserProfile {
     @Column(name = "profile_image_key", length = 500)
     private String profileImageKey;
 
-    @Column(name = "character_code", length = 50)
+    @Column(name = "character_code", nullable = false, length = 50)
     private String characterCode;
 
     @Enumerated(EnumType.STRING)
@@ -70,4 +70,10 @@ public class UserProfile {
 
     public void updateProfileImageKey(String profileImageKey) {
         this.profileImageKey = profileImageKey;
-    }}
+    }
+
+    public void updateCharacterCode(String characterCode) {
+        this.characterCode = characterCode;
+    }
+}
+

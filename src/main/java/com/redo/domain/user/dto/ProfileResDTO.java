@@ -6,6 +6,7 @@ public class ProfileResDTO {
             Long userId,
             String nickname,
             String profileImageUrl,
+            String characterCode,
             Integer totalPoint
     ) {}
 

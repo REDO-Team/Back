@@ -92,4 +92,22 @@ public class ProfileController {
         return ApiResponse.onSuccess(ProfileSuccessCode.UPDATE_IMAGE_SUCCESS, responseBody);
     }
 
+    @PatchMapping("/me/profile/character")
+    public ApiResponse<Void> updateCharacter(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody @Valid ProfileReqDTO.UpdateCharacter request
+    ) {
+        String accessToken = authHeader.replace("Bearer ", "");
+        Long userId;
+        try {
+            userId = jwtUtil.getUserIdFromToken(accessToken);
+        } catch (Exception e) {
+            throw new GeneralException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+        }
+
+        profileService.updateCharacter(userId, request.characterCode());
+
+        return ApiResponse.onSuccess(ProfileSuccessCode.UPDATE_CHARACTER_SUCCESS, null);
+    }
+
 }

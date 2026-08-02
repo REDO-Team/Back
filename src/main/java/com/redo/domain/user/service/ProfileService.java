@@ -16,6 +16,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Set;
+
 
 @Service
 @RequiredArgsConstructor
@@ -34,15 +36,15 @@ public class ProfileService {
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
 
-        String imageUrl;
+        String imageUrl = null;
+
         if (profile.getProfileImageKey() != null) {
             imageUrl = s3Service.createPresignedUrl(profile.getProfileImageKey());
-        } else {
-            imageUrl = profile.getCharacterCode();
         }
 
-        return ProfileConverter.toProfileInfo(user, profile, imageUrl);
+        return ProfileConverter.toProfileInfo(user, profile, imageUrl, profile.getCharacterCode());
     }
+
 
 
     @Transactional
@@ -74,6 +76,9 @@ public class ProfileService {
         if(userProfileRepository.findByNickname(request.nickname()).isPresent()){
             throw new GeneralException(ProfileErrorCode.DUPLICATE_NICKNAME);
         }
+
+        validateCharacterCode(request.characterCode());
+
         UserProfile userProfile = UserProfile.create(user, request.nickname(), request.characterCode(),
                 request.gender(), request.birthDate());
 
@@ -110,5 +115,25 @@ public class ProfileService {
             throw e;
         }
     }
+
+    private static final Set<String> VALID_CHARACTER_CODES = Set.of("1", "2", "3", "4", "5", "6");
+
+
+    @Transactional
+    public void updateCharacter(Long userId, String characterCode) {
+        validateCharacterCode(characterCode);
+
+        UserProfile profile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
+
+        profile.updateCharacterCode(characterCode);
+    }
+    // 캐릭터코드 검증 메서드
+    private void validateCharacterCode(String characterCode) {
+        if (characterCode == null || !VALID_CHARACTER_CODES.contains(characterCode)) {
+            throw new GeneralException(ProfileErrorCode.INVALID_CHARACTER_CODE);
+        }
+    }
+
 
 }
