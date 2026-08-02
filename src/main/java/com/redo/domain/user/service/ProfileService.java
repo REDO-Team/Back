@@ -76,6 +76,9 @@ public class ProfileService {
         if(userProfileRepository.findByNickname(request.nickname()).isPresent()){
             throw new GeneralException(ProfileErrorCode.DUPLICATE_NICKNAME);
         }
+
+        validateCharacterCode(request.characterCode());
+
         UserProfile userProfile = UserProfile.create(user, request.nickname(), request.characterCode(),
                 request.gender(), request.birthDate());
 
@@ -118,14 +121,19 @@ public class ProfileService {
 
     @Transactional
     public void updateCharacter(Long userId, String characterCode) {
-        if (!VALID_CHARACTER_CODES.contains(characterCode)) {
-            throw new GeneralException(ProfileErrorCode.INVALID_CHARACTER_CODE);
-        }
+        validateCharacterCode(characterCode);
 
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
 
         profile.updateCharacterCode(characterCode);
     }
+    // 캐릭터코드 검증 메서드
+    private void validateCharacterCode(String characterCode) {
+        if (characterCode == null || !VALID_CHARACTER_CODES.contains(characterCode)) {
+            throw new GeneralException(ProfileErrorCode.INVALID_CHARACTER_CODE);
+        }
+    }
+
 
 }
