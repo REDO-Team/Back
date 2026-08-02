@@ -15,7 +15,8 @@ public enum ProfileErrorCode implements BaseErrorCode {
     PROFILE_ALREADY_EXISTS(HttpStatus.CONFLICT, "USER_409_002", "이미 프로필이 등록된 사용자입니다."),
     INVALID_NICKNAME_FORMAT(HttpStatus.BAD_REQUEST, "USER_400_001", "닉네임 형식에 맞게 입력해주세요."),
     UNSUPPORTED_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "USER_400_002", "지원하지 않는 이미지 형식입니다. (jpg, png만 가능)"),
-    IMAGE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "USER_400_003", "이미지 크기는 5MB 이하만 가능합니다.");
+    IMAGE_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "USER_400_003", "이미지 크기는 5MB 이하만 가능합니다."),
+    INVALID_CHARACTER_CODE(HttpStatus.BAD_REQUEST, "USER_400_004", "유효하지 않은 캐릭터 코드입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

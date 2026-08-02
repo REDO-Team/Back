@@ -16,6 +16,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Set;
+
 
 @Service
 @RequiredArgsConstructor
@@ -111,8 +113,15 @@ public class ProfileService {
         }
     }
 
+    private static final Set<String> VALID_CHARACTER_CODES = Set.of("1", "2", "3", "4", "5", "6");
+
+
     @Transactional
     public void updateCharacter(Long userId, String characterCode) {
+        if (!VALID_CHARACTER_CODES.contains(characterCode)) {
+            throw new GeneralException(ProfileErrorCode.INVALID_CHARACTER_CODE);
+        }
+
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
 
