@@ -34,15 +34,15 @@ public class ProfileService {
         UserProfile profile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
 
-        String imageUrl;
+        String imageUrl = null;
+
         if (profile.getProfileImageKey() != null) {
             imageUrl = s3Service.createPresignedUrl(profile.getProfileImageKey());
-        } else {
-            imageUrl = profile.getCharacterCode();
         }
 
-        return ProfileConverter.toProfileInfo(user, profile, imageUrl);
+        return ProfileConverter.toProfileInfo(user, profile, imageUrl, profile.getCharacterCode());
     }
+
 
 
     @Transactional

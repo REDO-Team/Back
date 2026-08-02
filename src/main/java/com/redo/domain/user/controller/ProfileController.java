@@ -107,7 +107,7 @@ public class ProfileController {
 
         profileService.updateCharacter(userId, request.characterCode());
 
-        return ApiResponse.onSuccess(Profile    SuccessCode.UPDATE_CHARACTER_SUCCESS, null);
+        return ApiResponse.onSuccess(ProfileSuccessCode.UPDATE_CHARACTER_SUCCESS, null);
     }
 
 }
