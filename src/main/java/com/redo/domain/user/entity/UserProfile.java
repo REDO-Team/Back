@@ -70,4 +70,10 @@ public class UserProfile {
 
     public void updateProfileImageKey(String profileImageKey) {
         this.profileImageKey = profileImageKey;
-    }}
+    }
+
+    public void updateCharacterCode(String characterCode) {
+        this.characterCode = characterCode;
+    }
+}
+

@@ -111,4 +111,12 @@ public class ProfileService {
         }
     }
 
+    @Transactional
+    public void updateCharacter(Long userId, String characterCode) {
+        UserProfile profile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new GeneralException(ProfileErrorCode.USER_NOT_FOUND));
+
+        profile.updateCharacterCode(characterCode);
+    }
+
 }
