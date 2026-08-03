@@ -3,6 +3,7 @@ package com.redo.domain.community.dto.res;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record CommunityDetailResponseDTO(
         Long id,
@@ -12,7 +13,7 @@ public record CommunityDetailResponseDTO(
         String characterCode,
         String content,
         LocalDateTime createdAt,
-        String imageUrl,
+        List<String> imageUrls,
         String category,
         Long numComments,
         Integer numLikes,

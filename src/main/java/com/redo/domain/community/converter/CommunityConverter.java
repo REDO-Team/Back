@@ -72,7 +72,7 @@ public class CommunityConverter {
             String writer,
             String profileImageUrl,
             String characterCode,
-            String imageUrl,
+            List<String> imageUrls,
             long numComments,
             boolean isLiked,
             boolean isMine
@@ -85,7 +85,7 @@ public class CommunityConverter {
                 characterCode,
                 community.getContent(),
                 community.getCreatedAt(),
-                imageUrl,
+                imageUrls,
                 String.valueOf(community.getCategory().getCode()),
                 numComments,
                 community.getLikeCount() == null ? 0 : community.getLikeCount(),
