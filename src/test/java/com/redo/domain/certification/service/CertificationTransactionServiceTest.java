@@ -17,6 +17,7 @@ import com.redo.domain.certification.repository.AiJudgementRepository;
 import com.redo.domain.certification.repository.CertificationRepository;
 import com.redo.domain.certification.service.policy.CertificationPolicyEvaluator;
 import com.redo.domain.certification.service.policy.CertificationPolicyResult;
+import com.redo.domain.contribution.service.ContributionService;
 import com.redo.domain.point.exception.PointException;
 import com.redo.domain.point.exception.code.PointErrorCode;
 import com.redo.domain.point.service.PointService;
@@ -70,6 +71,8 @@ class CertificationTransactionServiceTest {
     private CertificationPolicyEvaluator policyEvaluator;
     @Mock
     private PointService pointService;
+    @Mock
+    private ContributionService contributionService;
 
     private CertificationTransactionService service;
     private User user;
@@ -85,6 +88,7 @@ class CertificationTransactionServiceTest {
                 templateProvider,
                 policyEvaluator,
                 pointService,
+                contributionService,
                 new ObjectMapper(),
                 Clock.fixed(NOW, ZoneId.of("Asia/Seoul"))
         );
@@ -164,6 +168,7 @@ class CertificationTransactionServiceTest {
         verify(templateProvider, never()).findActiveByRecycleGuideId(any());
         verify(aiJudgementRepository, never()).save(any());
         verify(pointService, never()).earnPoint(any(), any(), any(), any());
+        verify(contributionService, never()).recordPassedCertification(any());
     }
 
     @Test
@@ -211,6 +216,7 @@ class CertificationTransactionServiceTest {
         assertThat(judgementCaptor.getValue().getRetryGuide())
                 .contains("내용물을 비운 뒤 다시 촬영해 주세요.");
         verify(pointService, never()).earnPoint(any(), any(), any(), any());
+        verify(contributionService, never()).recordPassedCertification(any());
     }
 
     @Test
@@ -253,6 +259,7 @@ class CertificationTransactionServiceTest {
                 CertificationSource.AFTER_SEARCH,
                 "certification:104:earn"
         );
+        verify(contributionService).recordPassedCertification(104L);
     }
 
     @Test
@@ -302,6 +309,7 @@ class CertificationTransactionServiceTest {
                 CertificationSource.AFTER_SEARCH,
                 "certification:105:earn"
         );
+        verify(contributionService, never()).recordPassedCertification(any());
     }
 
     private CertificationPolicyResult allowedPolicy() {

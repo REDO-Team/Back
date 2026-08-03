@@ -302,6 +302,7 @@ groups:
         noDataState: OK
         execErrState: Error
         for: 5m
+        keepFiringFor: 10m
         annotations:
           summary: Service EC2 메모리 사용률이 높습니다.
           description: Service EC2 메모리 사용률이 5분 이상 90%를 초과했습니다.

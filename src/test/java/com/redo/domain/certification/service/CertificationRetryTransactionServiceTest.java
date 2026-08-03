@@ -19,6 +19,7 @@ import com.redo.domain.certification.repository.AiJudgementRepository;
 import com.redo.domain.certification.repository.CertificationRepository;
 import com.redo.domain.certification.service.policy.CertificationPolicyEvaluator;
 import com.redo.domain.certification.service.policy.CertificationPolicyResult;
+import com.redo.domain.contribution.service.ContributionService;
 import com.redo.domain.point.service.PointService;
 import com.redo.domain.recycleGuide.dto.ActiveRecycleJudgementTemplate;
 import com.redo.domain.recycleGuide.entity.RecycleGuide;
@@ -77,6 +78,8 @@ class CertificationRetryTransactionServiceTest {
     @Mock
     private PointService pointService;
     @Mock
+    private ContributionService contributionService;
+    @Mock
     private User user;
     @Mock
     private RecycleGuide guide;
@@ -97,6 +100,7 @@ class CertificationRetryTransactionServiceTest {
                 templateProvider,
                 policyEvaluator,
                 pointService,
+                contributionService,
                 new ObjectMapper(),
                 clock
         );
@@ -240,6 +244,7 @@ class CertificationRetryTransactionServiceTest {
                 CertificationSource.AFTER_SEARCH,
                 "certification:101:earn"
         );
+        verify(contributionService).recordPassedCertification(CERTIFICATION_ID);
     }
 
     @Test
@@ -270,6 +275,7 @@ class CertificationRetryTransactionServiceTest {
         assertThat(response.retryAllowed()).isFalse();
         verify(aiJudgementRepository, never()).save(any());
         verify(pointService, never()).earnPoint(any(), any(), any(), any());
+        verify(contributionService, never()).recordPassedCertification(any());
     }
 
     @Test
@@ -296,6 +302,7 @@ class CertificationRetryTransactionServiceTest {
         assertThat(certification.getStatus()).isEqualTo(CertificationStatus.PROCESSING);
         verify(aiJudgementRepository, never()).save(any());
         verify(pointService, never()).earnPoint(any(), any(), any(), any());
+        verify(contributionService, never()).recordPassedCertification(any());
     }
 
     private Certification retryableCertification() {
