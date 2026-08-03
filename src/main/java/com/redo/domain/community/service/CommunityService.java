@@ -87,7 +87,7 @@ public class CommunityService {
     }
 
     // 게시글 상세 조회 로직
-    public CommunityDetailResponseDTO getCommunityPost(Long communityId) {
+    public CommunityDetailResponseDTO getCommunityPost(Long userId, Long communityId) {
         Community community = communityRepository.findByIdAndDeletedAtIsNull(communityId)
                 .orElseThrow(() -> new CommunityException(CommunityErrorCode.COMMUNITY_NOT_FOUND));
 
@@ -98,8 +98,22 @@ public class CommunityService {
                 getNickname(profile),
                 getProfileImageUrl(profile),
                 getCharacterCode(profile),
-                getRepresentativeImageUrl(community)
+                getRepresentativeImageUrl(community),
+                communityCommentRepository.countByCommunityAndDeletedAtIsNull(community),
+                isLiked(userId, community),
+                isMine(userId, community)
         );
+    }
+
+    // 조회자가 해당 게시글에 좋아요를 눌렀는지 판별하는 로직
+    private boolean isLiked(Long userId, Community community) {
+        return userId != null
+                && communityLikeRepository.existsById(new CommunityLikeId(community.getId(), userId));
+    }
+
+    // 조회자가 해당 게시글의 작성자인지 판별하는 로직
+    private boolean isMine(Long userId, Community community) {
+        return userId != null && userId.equals(community.getUser().getId());
     }
 
     // 게시글 등록 로직

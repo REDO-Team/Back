@@ -72,7 +72,10 @@ public class CommunityConverter {
             String writer,
             String profileImageUrl,
             String characterCode,
-            String imageUrl
+            String imageUrl,
+            long numComments,
+            boolean isLiked,
+            boolean isMine
     ) {
         return new CommunityDetailResponseDTO(
                 community.getId(),
@@ -82,7 +85,12 @@ public class CommunityConverter {
                 characterCode,
                 community.getContent(),
                 community.getCreatedAt(),
-                imageUrl
+                imageUrl,
+                String.valueOf(community.getCategory().getCode()),
+                numComments,
+                community.getLikeCount() == null ? 0 : community.getLikeCount(),
+                isLiked,
+                isMine
         );
     }
 

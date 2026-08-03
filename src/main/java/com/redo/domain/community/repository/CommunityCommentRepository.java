@@ -27,6 +27,9 @@ public interface CommunityCommentRepository extends JpaRepository<CommunityComme
         long getCommentCount();
     }
 
+    // 상세 조회용: 단일 게시글의 삭제되지 않은 댓글 수를 집계한다.
+    long countByCommunityAndDeletedAtIsNull(Community community);
+
     List<CommunityComment> findByCommunityAndIdGreaterThanAndDeletedAtIsNullOrderByIdAsc(
             Community community,
             Long cursor,

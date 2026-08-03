@@ -1,5 +1,7 @@
 package com.redo.domain.community.dto.res;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.time.LocalDateTime;
 
 public record CommunityDetailResponseDTO(
@@ -10,6 +12,12 @@ public record CommunityDetailResponseDTO(
         String characterCode,
         String content,
         LocalDateTime createdAt,
-        String imageUrl
+        String imageUrl,
+        String category,
+        Long numComments,
+        Integer numLikes,
+        // ApiResponse 의 isSuccess 와 동일하게, Jackson 이 is 접두사를 떼지 않도록 이름을 고정한다.
+        @JsonProperty("isLiked") boolean isLiked,
+        @JsonProperty("isMine") boolean isMine
 ) {
 }
