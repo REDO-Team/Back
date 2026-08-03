@@ -20,20 +20,26 @@ public interface CommunityRepository extends JpaRepository<Community, Long> {
 
     Optional<Community> findByIdAndDeletedAtIsNull(Long id);
 
-    // 목록 조회용: 게시글별 작성자 닉네임을 단건 쿼리 반복 없이 한 번에 조회한다.
+    // 목록 조회용: 게시글별 작성자 프로필(닉네임/프로필 이미지 키/캐릭터 코드)을 단건 쿼리 반복 없이 한 번에 조회한다.
     // 프로필이 없는 사용자도 게시글은 조회되어야 하므로 UserProfile 은 LEFT JOIN 한다.
     @Query("""
-            SELECT c.id AS communityId, p.nickname AS nickname
+            SELECT c.id AS communityId,
+                   p.nickname AS nickname,
+                   p.profileImageKey AS profileImageKey,
+                   p.characterCode AS characterCode
             FROM Community c
             LEFT JOIN UserProfile p ON p.user = c.user
             WHERE c IN :communities
             """)
     List<CommunityWriter> findWritersByCommunities(@Param("communities") List<Community> communities);
 
-    // 게시글별 작성자 닉네임 조회 결과 projection
+    // 게시글별 작성자 프로필 조회 결과 projection
+    // LEFT JOIN 이므로 프로필이 없는 작성자는 communityId 를 제외한 값이 모두 null 이다.
     interface CommunityWriter {
         Long getCommunityId();
         String getNickname();
+        String getProfileImageKey();
+        String getCharacterCode();
     }
 
     // 동시 요청에서 갱신 유실(Lost Update)이 발생하지 않도록 좋아요 수를 DB에서 원자적으로 증가시킨다.

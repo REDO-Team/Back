@@ -11,6 +11,8 @@ public record CommunityResponseDTO(
         String title,
         String category,
         String preview,
-        String writer
+        String writer,
+        String profileImageUrl,
+        String characterCode
 ) {
 }

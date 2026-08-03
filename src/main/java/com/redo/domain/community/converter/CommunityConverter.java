@@ -37,7 +37,9 @@ public class CommunityConverter {
             Community community,
             long numComments,
             String imageUrl,
-            String writer
+            String writer,
+            String profileImageUrl,
+            String characterCode
     ) {
         return new CommunityResponseDTO(
                 community.getId(),
@@ -48,7 +50,9 @@ public class CommunityConverter {
                 community.getTitle(),
                 String.valueOf(community.getCategory().getCode()),
                 toPreview(community.getContent()),
-                writer
+                writer,
+                profileImageUrl,
+                characterCode
         );
     }
 
@@ -66,12 +70,16 @@ public class CommunityConverter {
     public static CommunityDetailResponseDTO toCommunityDetailResponse(
             Community community,
             String writer,
+            String profileImageUrl,
+            String characterCode,
             String imageUrl
     ) {
         return new CommunityDetailResponseDTO(
                 community.getId(),
                 community.getTitle(),
                 writer,
+                profileImageUrl,
+                characterCode,
                 community.getContent(),
                 community.getCreatedAt(),
                 imageUrl
@@ -134,10 +142,17 @@ public class CommunityConverter {
                 .build();
     }
 
-    public static CommunityCommentResponseDTO toCommunityCommentResponse(CommunityComment comment, String writer) {
+    public static CommunityCommentResponseDTO toCommunityCommentResponse(
+            CommunityComment comment,
+            String writer,
+            String profileImageUrl,
+            String characterCode
+    ) {
         return new CommunityCommentResponseDTO(
                 comment.getId(),
                 writer,
+                profileImageUrl,
+                characterCode,
                 comment.getContent(),
                 comment.getCreatedAt()
         );
