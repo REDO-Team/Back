@@ -77,11 +77,12 @@ public class CommunityController {
     // 커뮤니티 게시글 상세 조회 API
     @GetMapping("/{communityId}")
     public ApiResponse<CommunityDetailResponseDTO> getCommunityPost(
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long communityId
     ) {
         return ApiResponse.onSuccess(
                 CommunitySuccessCode.GET_COMMUNITY_POST_SUCCESS,
-                communityService.getCommunityPost(communityId)
+                communityService.getCommunityPost(userId, communityId)
         );
     }
 

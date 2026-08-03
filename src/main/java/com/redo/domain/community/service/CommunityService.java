@@ -41,6 +41,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -87,7 +88,7 @@ public class CommunityService {
     }
 
     // 게시글 상세 조회 로직
-    public CommunityDetailResponseDTO getCommunityPost(Long communityId) {
+    public CommunityDetailResponseDTO getCommunityPost(Long userId, Long communityId) {
         Community community = communityRepository.findByIdAndDeletedAtIsNull(communityId)
                 .orElseThrow(() -> new CommunityException(CommunityErrorCode.COMMUNITY_NOT_FOUND));
 
@@ -98,8 +99,22 @@ public class CommunityService {
                 getNickname(profile),
                 getProfileImageUrl(profile),
                 getCharacterCode(profile),
-                getRepresentativeImageUrl(community)
+                getImageUrls(community),
+                communityCommentRepository.countByCommunityAndDeletedAtIsNull(community),
+                isLiked(userId, community),
+                isMine(userId, community)
         );
+    }
+
+    // 조회자가 해당 게시글에 좋아요를 눌렀는지 판별하는 로직
+    private boolean isLiked(Long userId, Community community) {
+        return userId != null
+                && communityLikeRepository.existsById(new CommunityLikeId(community.getId(), userId));
+    }
+
+    // 조회자가 해당 게시글의 작성자인지 판별하는 로직
+    private boolean isMine(Long userId, Community community) {
+        return userId != null && userId.equals(community.getUser().getId());
     }
 
     // 게시글 등록 로직
@@ -312,12 +327,13 @@ public class CommunityService {
                 ));
     }
 
-    // 대표 이미지(display_order 최솟값)의 S3 객체 키를 조회용 Presigned URL로 변환하는 로직
-    private String getRepresentativeImageUrl(Community community) {
-        return communityImgRepository.findFirstByCommunityOrderByDisplayOrderAsc(community)
+    // 상세 조회용: 첨부 이미지 전체의 S3 객체 키를 등록 순서(display_order)대로 Presigned URL로 변환하는 로직
+    private List<String> getImageUrls(Community community) {
+        return communityImgRepository.findByCommunityOrderByDisplayOrderAsc(community).stream()
                 .map(CommunityImg::getImageKey)
                 .map(this::createImageUrl)
-                .orElse(null);
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     // S3 객체 키를 이미지 조회용 Presigned URL로 변환하는 로직
