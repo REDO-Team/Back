@@ -70,14 +70,20 @@ public class CommunityService {
 
         Map<Long, Long> commentCounts = getCommentCounts(communities.getContent());
         Map<Long, String> representativeImageKeys = getRepresentativeImageKeys(communities.getContent());
-        Map<Long, String> writers = getWriters(communities.getContent());
+        Map<Long, CommunityRepository.CommunityWriter> writers = getWriters(communities.getContent());
 
-        return communities.map(community -> CommunityConverter.toCommunityResponse(
-                community,
-                commentCounts.getOrDefault(community.getId(), 0L),
-                createImageUrl(representativeImageKeys.get(community.getId())),
-                writers.get(community.getId())
-        ));
+        return communities.map(community -> {
+            CommunityRepository.CommunityWriter writer = writers.get(community.getId());
+
+            return CommunityConverter.toCommunityResponse(
+                    community,
+                    commentCounts.getOrDefault(community.getId(), 0L),
+                    createImageUrl(representativeImageKeys.get(community.getId())),
+                    writer == null ? null : writer.getNickname(),
+                    writer == null ? null : createImageUrl(writer.getProfileImageKey()),
+                    writer == null ? null : writer.getCharacterCode()
+            );
+        });
     }
 
     // 게시글 상세 조회 로직
@@ -85,9 +91,13 @@ public class CommunityService {
         Community community = communityRepository.findByIdAndDeletedAtIsNull(communityId)
                 .orElseThrow(() -> new CommunityException(CommunityErrorCode.COMMUNITY_NOT_FOUND));
 
+        UserProfile profile = getProfile(community.getUser().getId());
+
         return CommunityConverter.toCommunityDetailResponse(
                 community,
-                getNickname(community.getUser().getId()),
+                getNickname(profile),
+                getProfileImageUrl(profile),
+                getCharacterCode(profile),
                 getRepresentativeImageUrl(community)
         );
     }
@@ -107,7 +117,7 @@ public class CommunityService {
         // (등록 직후 즉시 조회 용도가 아니며, 조회 시점에 상세/목록 API가 Presigned URL을 새로 발급한다.)
         List<String> imageKeys = saveImages(community, request.images());
 
-        return CommunityConverter.toCommunityCreateResponse(community, imageKeys, getNickname(userId));
+        return CommunityConverter.toCommunityCreateResponse(community, imageKeys, getNickname(getProfile(userId)));
     }
 
     // 댓글 목록 조회 로직(comment ID 기준 커서 페이징, cursor/length 없으면 전체 반환)
@@ -123,10 +133,16 @@ public class CommunityService {
 
         return CommunityConverter.toCommunityCommentListResponse(
                 comments.stream()
-                        .map(comment -> CommunityConverter.toCommunityCommentResponse(
-                                comment,
-                                getNickname(comment.getUser().getId())
-                        ))
+                        .map(comment -> {
+                            UserProfile profile = getProfile(comment.getUser().getId());
+
+                            return CommunityConverter.toCommunityCommentResponse(
+                                    comment,
+                                    getNickname(profile),
+                                    getProfileImageUrl(profile),
+                                    getCharacterCode(profile)
+                            );
+                        })
                         .toList()
         );
     }
@@ -268,18 +284,17 @@ public class CommunityService {
                 ));
     }
 
-    // 목록의 게시글별 작성자 닉네임을 한 번의 쿼리로 조회하는 로직
-    private Map<Long, String> getWriters(List<Community> communities) {
+    // 목록의 게시글별 작성자 프로필을 한 번의 쿼리로 조회하는 로직
+    // 프로필이 없는 작성자도 projection 자체는 반환되므로(각 필드가 null) Map 수집에서 제외하지 않는다.
+    private Map<Long, CommunityRepository.CommunityWriter> getWriters(List<Community> communities) {
         if (communities.isEmpty()) {
             return Map.of();
         }
 
         return communityRepository.findWritersByCommunities(communities).stream()
-                // 프로필이 없어 닉네임이 null 인 경우 Map 수집에서 제외한다(조회 시 null 로 응답된다).
-                .filter(writer -> writer.getNickname() != null)
                 .collect(Collectors.toMap(
                         CommunityRepository.CommunityWriter::getCommunityId,
-                        CommunityRepository.CommunityWriter::getNickname
+                        writer -> writer
                 ));
     }
 
@@ -314,10 +329,23 @@ public class CommunityService {
         return s3Service.createPresignedUrl(imageKey);
     }
 
-    private String getNickname(Long userId) {
-        return userProfileRepository.findByUserId(userId)
-                .map(UserProfile::getNickname)
-                .orElse(null);
+    // 작성자 프로필을 조회하는 로직(프로필을 아직 만들지 않은 사용자는 null 을 반환한다)
+    private UserProfile getProfile(Long userId) {
+        return userProfileRepository.findByUserId(userId).orElse(null);
+    }
+
+    private String getNickname(UserProfile profile) {
+        return profile == null ? null : profile.getNickname();
+    }
+
+    // 작성자 프로필 이미지의 S3 객체 키를 조회용 Presigned URL로 변환하는 로직
+    // 프로필 이미지를 등록하지 않은 사용자는 null 이 되며, 이 경우 characterCode 로 대체 표시한다.
+    private String getProfileImageUrl(UserProfile profile) {
+        return profile == null ? null : createImageUrl(profile.getProfileImageKey());
+    }
+
+    private String getCharacterCode(UserProfile profile) {
+        return profile == null ? null : profile.getCharacterCode();
     }
 
     private Community getActiveCommunity(Long communityId) {
