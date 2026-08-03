@@ -22,6 +22,7 @@ import com.redo.domain.certification.repository.AiJudgementRepository;
 import com.redo.domain.certification.repository.CertificationRepository;
 import com.redo.domain.certification.service.policy.CertificationPolicyEvaluator;
 import com.redo.domain.certification.service.policy.CertificationPolicyResult;
+import com.redo.domain.contribution.service.ContributionService;
 import com.redo.domain.point.service.PointService;
 import com.redo.domain.recycleGuide.dto.ActiveRecycleJudgementTemplate;
 import com.redo.domain.recycleGuide.entity.RecycleGuide;
@@ -72,6 +73,7 @@ public class CertificationTransactionService {
     private final RecycleJudgementTemplateProvider templateProvider;
     private final CertificationPolicyEvaluator policyEvaluator;
     private final PointService pointService;
+    private final ContributionService contributionService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -83,6 +85,7 @@ public class CertificationTransactionService {
             RecycleJudgementTemplateProvider templateProvider,
             CertificationPolicyEvaluator policyEvaluator,
             PointService pointService,
+            ContributionService contributionService,
             ObjectMapper objectMapper,
             @Qualifier(CERTIFICATION_CLOCK) Clock clock
     ) {
@@ -93,6 +96,7 @@ public class CertificationTransactionService {
         this.templateProvider = templateProvider;
         this.policyEvaluator = policyEvaluator;
         this.pointService = pointService;
+        this.contributionService = contributionService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -280,6 +284,7 @@ public class CertificationTransactionService {
                     certification.getCertificationSource(),
                     certificationEarnIdempotencyKey(certification.getId())
             );
+            contributionService.recordPassedCertification(certification.getId());
         }
         return new CertificationCreateResponseDTO(
                 certification.getId(),

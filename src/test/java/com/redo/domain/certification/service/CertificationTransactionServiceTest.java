@@ -17,6 +17,7 @@ import com.redo.domain.certification.repository.AiJudgementRepository;
 import com.redo.domain.certification.repository.CertificationRepository;
 import com.redo.domain.certification.service.policy.CertificationPolicyEvaluator;
 import com.redo.domain.certification.service.policy.CertificationPolicyResult;
+import com.redo.domain.contribution.service.ContributionService;
 import com.redo.domain.point.exception.PointException;
 import com.redo.domain.point.exception.code.PointErrorCode;
 import com.redo.domain.point.service.PointService;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -44,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -70,6 +73,8 @@ class CertificationTransactionServiceTest {
     private CertificationPolicyEvaluator policyEvaluator;
     @Mock
     private PointService pointService;
+    @Mock
+    private ContributionService contributionService;
 
     private CertificationTransactionService service;
     private User user;
@@ -85,6 +90,7 @@ class CertificationTransactionServiceTest {
                 templateProvider,
                 policyEvaluator,
                 pointService,
+                contributionService,
                 new ObjectMapper(),
                 Clock.fixed(NOW, ZoneId.of("Asia/Seoul"))
         );
@@ -164,6 +170,7 @@ class CertificationTransactionServiceTest {
         verify(templateProvider, never()).findActiveByRecycleGuideId(any());
         verify(aiJudgementRepository, never()).save(any());
         verify(pointService, never()).earnPoint(any(), any(), any(), any());
+        verify(contributionService, never()).recordPassedCertification(any());
     }
 
     @Test
@@ -211,6 +218,7 @@ class CertificationTransactionServiceTest {
         assertThat(judgementCaptor.getValue().getRetryGuide())
                 .contains("내용물을 비운 뒤 다시 촬영해 주세요.");
         verify(pointService, never()).earnPoint(any(), any(), any(), any());
+        verify(contributionService, never()).recordPassedCertification(any());
     }
 
     @Test
@@ -247,12 +255,14 @@ class CertificationTransactionServiceTest {
         assertThat(response.status()).isEqualTo(CertificationStatus.PASSED);
         assertThat(response.earnedPoint()).isEqualTo(100);
         assertThat(response.retryAllowed()).isFalse();
-        verify(pointService).earnPoint(
+        InOrder completionOrder = inOrder(pointService, contributionService);
+        completionOrder.verify(pointService).earnPoint(
                 USER_ID,
                 104L,
                 CertificationSource.AFTER_SEARCH,
                 "certification:104:earn"
         );
+        completionOrder.verify(contributionService).recordPassedCertification(104L);
     }
 
     @Test
@@ -302,6 +312,7 @@ class CertificationTransactionServiceTest {
                 CertificationSource.AFTER_SEARCH,
                 "certification:105:earn"
         );
+        verify(contributionService, never()).recordPassedCertification(any());
     }
 
     private CertificationPolicyResult allowedPolicy() {

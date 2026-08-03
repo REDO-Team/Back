@@ -104,9 +104,6 @@ public class ContributionService {
         );
     }
 
-    /**
-     * 인증 성공 처리 구현이 연결되면 PASSED 확정 트랜잭션에서 호출합니다.
-     */
     @Transactional
     public ContributionEvent recordPassedCertification(Long certificationId) {
         return contributionEventRepository.findByCertificationId(certificationId)
