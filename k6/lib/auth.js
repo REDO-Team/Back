@@ -20,6 +20,7 @@ export function resolveAccessToken(baseUrl) {
     loginUrl,
     JSON.stringify({ loginId, password }),
     {
+      redirects: 0,
       headers: { 'Content-Type': 'application/json' },
       tags: {
         name: 'POST /api/auth/login',
