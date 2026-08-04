@@ -54,10 +54,10 @@ public class RecycleGuideAiService {
 
         String jsonSchema = """
                 {
-                  "type": "object",
-                  "properties": {
+//                  "type": "object",
+//                  "properties": {
                     "name": { "type": "string", "description": "The exact matched item name from the list, or NOT_FOUND" },
-                    "reason": { "type": "string", "description": "The reasoning for choosing this item" }
+                    "reason": { "type": "string", "description": "해당 항목을 선택한 이유를 반드시 한국어로 작성" }
                   },
                   "required": ["name", "reason"]
                 }
@@ -66,7 +66,7 @@ public class RecycleGuideAiService {
         String userPrompt = "Choose the ONE most appropriate item name from the provided list that matches the garbage in the image. If none match or it's difficult to tell, you MUST answer with 'NOT_FOUND'.\\nList: " + validNames;
 
         GeminiRequest request = new GeminiRequest(
-                "You are an expert in recycling and waste sorting. Based on the provided image and list of item names, identify the exact item name in JSON format.",
+                "You are an expert in recycling and waste sorting. Based on the provided image and list of item names, identify the exact item name in JSON format. You MUST always write the 'reason' field in Korean.",
                 userPrompt,
                 List.of(media),
                 true,
@@ -123,7 +123,7 @@ public class RecycleGuideAiService {
                   "type": "object",
                   "properties": {
                     "name": { "type": "string", "description": "The exact matched item name from the list, or NOT_FOUND" },
-                    "reason": { "type": "string", "description": "The reasoning for choosing this item" }
+                    "reason": { "type": "string", "description": "해당 항목을 선택한 이유를 반드시 한국어로 작성" }
                   },
                   "required": ["name", "reason"]
                 }
@@ -132,7 +132,7 @@ public class RecycleGuideAiService {
         String userPrompt = "Choose the ONE most appropriate item name from the provided list that matches the problem description. If none match or it's difficult to tell, you MUST answer with 'NOT_FOUND'.\\nDescription: " + text + "\\nList: " + validNames;
 
         GeminiRequest request = new GeminiRequest(
-                "You are an expert in recycling and waste sorting. Based on the provided problem description and list of item names, identify the exact item name in JSON format.",
+                "You are an expert in recycling and waste sorting. Based on the provided problem description and list of item names, identify the exact item name in JSON format. You MUST always write the 'reason' field in Korean.",
                 userPrompt,
                 List.of(),
                 true,
