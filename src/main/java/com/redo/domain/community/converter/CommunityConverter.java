@@ -7,9 +7,11 @@ import com.redo.domain.community.dto.res.CommunityCommentResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCreateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityDeleteResponseDTO;
 import com.redo.domain.community.dto.res.CommunityDetailResponseDTO;
+import com.redo.domain.community.dto.res.CommunityImageResponseDTO;
 import com.redo.domain.community.dto.res.CommunityLikeResponseDTO;
 import com.redo.domain.community.dto.res.CommunityPageResponseDTO;
 import com.redo.domain.community.dto.res.CommunityResponseDTO;
+import com.redo.domain.community.dto.res.CommunityUpdateResponseDTO;
 import com.redo.domain.community.entity.Community;
 import com.redo.domain.community.entity.CommunityComment;
 import com.redo.domain.community.entity.CommunityImg;
@@ -72,7 +74,7 @@ public class CommunityConverter {
             String writer,
             String profileImageUrl,
             String characterCode,
-            List<String> imageUrls,
+            List<CommunityImageResponseDTO> images,
             long numComments,
             boolean isLiked,
             boolean isMine
@@ -85,7 +87,8 @@ public class CommunityConverter {
                 characterCode,
                 community.getContent(),
                 community.getCreatedAt(),
-                imageUrls,
+                images.stream().map(CommunityImageResponseDTO::imageUrl).toList(),
+                images,
                 String.valueOf(community.getCategory().getCode()),
                 numComments,
                 community.getLikeCount() == null ? 0 : community.getLikeCount(),
@@ -137,6 +140,25 @@ public class CommunityConverter {
         );
     }
 
+    public static CommunityImageResponseDTO toCommunityImageResponse(CommunityImg image, String imageUrl) {
+        return new CommunityImageResponseDTO(image.getId(), imageUrl);
+    }
+
+    // 수정 응답에는 수정 직후 화면을 바로 갱신할 수 있도록 남아 있는 이미지 전체(id + Presigned URL)를 담는다.
+    public static CommunityUpdateResponseDTO toCommunityUpdateResponse(
+            Community community,
+            List<CommunityImageResponseDTO> images
+    ) {
+        return new CommunityUpdateResponseDTO(
+                community.getId(),
+                community.getTitle(),
+                community.getContent(),
+                String.valueOf(community.getCategory().getCode()),
+                images,
+                community.getUpdatedAt()
+        );
+    }
+
     public static CommunityDeleteResponseDTO toCommunityDeleteResponse(Long communityId) {
         return new CommunityDeleteResponseDTO(communityId);
     }
@@ -154,7 +176,8 @@ public class CommunityConverter {
             CommunityComment comment,
             String writer,
             String profileImageUrl,
-            String characterCode
+            String characterCode,
+            boolean isMine
     ) {
         return new CommunityCommentResponseDTO(
                 comment.getId(),
@@ -162,7 +185,8 @@ public class CommunityConverter {
                 profileImageUrl,
                 characterCode,
                 comment.getContent(),
-                comment.getCreatedAt()
+                comment.getCreatedAt(),
+                isMine
         );
     }
 

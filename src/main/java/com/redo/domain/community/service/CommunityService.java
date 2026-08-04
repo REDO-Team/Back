@@ -3,14 +3,17 @@ package com.redo.domain.community.service;
 import com.redo.domain.community.converter.CommunityConverter;
 import com.redo.domain.community.dto.req.CommunityCommentCreateRequestDTO;
 import com.redo.domain.community.dto.req.CommunityCreateRequestDTO;
+import com.redo.domain.community.dto.req.CommunityUpdateRequestDTO;
 import com.redo.domain.community.dto.res.CommunityCommentCreateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCommentDeleteResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCommentListResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCreateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityDeleteResponseDTO;
 import com.redo.domain.community.dto.res.CommunityDetailResponseDTO;
+import com.redo.domain.community.dto.res.CommunityImageResponseDTO;
 import com.redo.domain.community.dto.res.CommunityLikeResponseDTO;
 import com.redo.domain.community.dto.res.CommunityResponseDTO;
+import com.redo.domain.community.dto.res.CommunityUpdateResponseDTO;
 import com.redo.domain.community.entity.Community;
 import com.redo.domain.community.entity.CommunityComment;
 import com.redo.domain.community.entity.CommunityImg;
@@ -29,8 +32,10 @@ import com.redo.domain.user.exception.UserErrorCode;
 import com.redo.domain.user.repository.UserProfileRepository;
 import com.redo.domain.user.repository.UserRepository;
 import com.redo.global.apiPayload.exception.GeneralException;
+import com.redo.global.s3.exception.S3Exception;
 import com.redo.global.s3.service.S3Service;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -42,8 +47,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -54,6 +61,9 @@ public class CommunityService {
 
     // 게시글 이미지가 업로드되는 S3 디렉터리 접두어
     private static final String IMAGE_DIRECTORY = "community";
+
+    // 첫 번째 첨부 이미지의 display_order
+    private static final int FIRST_DISPLAY_ORDER = 0;
 
     private final CommunityRepository communityRepository;
     private final CommunityCommentRepository communityCommentRepository;
@@ -99,7 +109,7 @@ public class CommunityService {
                 getNickname(profile),
                 getProfileImageUrl(profile),
                 getCharacterCode(profile),
-                getImageUrls(community),
+                getImages(community),
                 communityCommentRepository.countByCommunityAndDeletedAtIsNull(community),
                 isLiked(userId, community),
                 isMine(userId, community)
@@ -117,10 +127,15 @@ public class CommunityService {
         return userId != null && userId.equals(community.getUser().getId());
     }
 
+    // 조회자가 해당 댓글의 작성자인지 판별하는 로직
+    private boolean isMine(Long userId, CommunityComment comment) {
+        return userId != null && userId.equals(comment.getUser().getId());
+    }
+
     // 게시글 등록 로직
     @Transactional
     public CommunityCreateResponseDTO createCommunityPost(Long userId, CommunityCreateRequestDTO request) {
-        validateCreateRequest(request);
+        validatePostRequest(request.category(), request.title(), request.content());
         CommunityCategory category = toCategory(request.category());
         User user = getUser(userId);
 
@@ -130,13 +145,45 @@ public class CommunityService {
 
         // 등록 응답에는 만료되는 Presigned URL 대신 저장된 S3 객체 키를 그대로 담는다.
         // (등록 직후 즉시 조회 용도가 아니며, 조회 시점에 상세/목록 API가 Presigned URL을 새로 발급한다.)
-        List<String> imageKeys = saveImages(community, request.images());
+        List<String> imageKeys = saveImages(community, request.images(), FIRST_DISPLAY_ORDER);
 
         return CommunityConverter.toCommunityCreateResponse(community, imageKeys, getNickname(getProfile(userId)));
     }
 
+    // 게시글 수정 로직(작성자만 가능. 첨부 이미지는 삭제 대상만 지우고 새 이미지를 뒤에 추가한다)
+    @Transactional
+    public CommunityUpdateResponseDTO updateCommunityPost(
+            Long userId,
+            Long communityId,
+            CommunityUpdateRequestDTO request
+    ) {
+        validatePostRequest(request.category(), request.title(), request.content());
+
+        Community community = getActiveCommunity(communityId);
+        if (!community.getUser().getId().equals(userId)) {
+            throw new CommunityException(CommunityErrorCode.NOT_POST_OWNER);
+        }
+
+        community.update(toCategory(request.category()), request.title(), request.content());
+
+        // 제목/본문 변경 없이 첨부 이미지만 바뀌면 게시글 컬럼이 그대로라 UPDATE 가 나가지 않으므로 수정 시각을 직접 갱신한다.
+        if (editImages(community, request.deleteImageIds(), request.images())) {
+            community.touch();
+        }
+
+        // 응답에 갱신된 updatedAt(@PreUpdate 로 채워진다)을 담기 위해 변경 내용을 먼저 반영한다.
+        communityRepository.flush();
+
+        return CommunityConverter.toCommunityUpdateResponse(community, getImages(community));
+    }
+
     // 댓글 목록 조회 로직(comment ID 기준 커서 페이징, cursor/length 없으면 전체 반환)
-    public CommunityCommentListResponseDTO getCommunityComments(Long communityId, Long cursor, Integer length) {
+    public CommunityCommentListResponseDTO getCommunityComments(
+            Long userId,
+            Long communityId,
+            Long cursor,
+            Integer length
+    ) {
         Community community = getActiveCommunity(communityId);
 
         List<CommunityComment> comments = communityCommentRepository
@@ -155,7 +202,8 @@ public class CommunityService {
                                     comment,
                                     getNickname(profile),
                                     getProfileImageUrl(profile),
-                                    getCharacterCode(profile)
+                                    getCharacterCode(profile),
+                                    isMine(userId, comment)
                             );
                         })
                         .toList()
@@ -257,20 +305,22 @@ public class CommunityService {
         return CommunityConverter.toCommunityDeleteResponse(community.getId());
     }
 
-    private void validateCreateRequest(CommunityCreateRequestDTO request) {
-        if (request.title() == null || request.title().isBlank()) {
+    // 게시글 등록/수정 공통 필수값 검증 로직
+    private void validatePostRequest(Integer category, String title, String content) {
+        if (title == null || title.isBlank()) {
             throw new CommunityException(CommunityErrorCode.TITLE_REQUIRED);
         }
-        if (request.content() == null || request.content().isBlank()) {
+        if (content == null || content.isBlank()) {
             throw new CommunityException(CommunityErrorCode.CONTENT_REQUIRED);
         }
-        if (request.category() == null) {
+        if (category == null) {
             throw new CommunityException(CommunityErrorCode.INVALID_CATEGORY);
         }
     }
 
     // 게시글 이미지 S3 업로드 및 객체 키 저장 로직. 업로드한 객체 키 목록을 반환한다.
-    private List<String> saveImages(Community community, List<MultipartFile> images) {
+    // startOrder 부터 display_order 를 순서대로 매겨 저장한다(등록은 0, 수정은 기존 이미지 다음 순서).
+    private List<String> saveImages(Community community, List<MultipartFile> images, int startOrder) {
         if (images == null) {
             return List.of();
         }
@@ -280,10 +330,67 @@ public class CommunityService {
                 .toList();
 
         List<String> imageKeys = s3Service.uploadAll(uploadTargets, IMAGE_DIRECTORY + "/" + community.getId());
-        for (int order = 0; order < imageKeys.size(); order++) {
-            communityImgRepository.save(CommunityConverter.toCommunityImg(community, imageKeys.get(order), order));
+        for (int index = 0; index < imageKeys.size(); index++) {
+            communityImgRepository.save(
+                    CommunityConverter.toCommunityImg(community, imageKeys.get(index), startOrder + index)
+            );
         }
         return imageKeys;
+    }
+
+    // 첨부 이미지 부분 수정 로직(deleteImageIds 로 지정한 이미지만 삭제하고, 새 이미지는 기존 이미지 뒤에 추가한다)
+    // 실제로 삭제되거나 추가된 이미지가 있으면 true 를 반환한다.
+    private boolean editImages(Community community, List<Long> deleteImageIds, List<MultipartFile> images) {
+        List<CommunityImg> currentImages = communityImgRepository.findByCommunityOrderByDisplayOrderAsc(community);
+
+        List<String> deletedImageKeys = deleteImages(currentImages, deleteImageIds);
+        // 남은 이미지와 순서가 겹치지 않도록 기존 display_order 최댓값 다음부터 이어서 저장한다.
+        List<String> addedImageKeys = saveImages(community, images, nextDisplayOrder(currentImages));
+
+        // S3 객체 정리는 DB 반영 이후에 수행하고, 실패하더라도 수정 자체는 성공으로 처리한다(고아 객체는 로그로 남긴다).
+        try {
+            s3Service.deleteAll(deletedImageKeys);
+        } catch (S3Exception exception) {
+            log.error("Failed to delete removed community images from S3. communityId={}, keys={}",
+                    community.getId(), deletedImageKeys, exception);
+        }
+
+        return !deletedImageKeys.isEmpty() || !addedImageKeys.isEmpty();
+    }
+
+    // 삭제 대상 이미지 행을 지우고, 정리해야 할 S3 객체 키를 반환하는 로직
+    private List<String> deleteImages(List<CommunityImg> currentImages, List<Long> deleteImageIds) {
+        if (deleteImageIds == null || deleteImageIds.isEmpty()) {
+            return List.of();
+        }
+
+        Set<Long> targetIds = deleteImageIds.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        List<CommunityImg> targets = currentImages.stream()
+                .filter(image -> targetIds.contains(image.getId()))
+                .toList();
+
+        // 다른 게시글의 이미지 id 나 이미 삭제된 id 로 접근하는 경우는 존재하지 않는 것으로 처리한다.
+        if (targets.size() != targetIds.size()) {
+            throw new CommunityException(CommunityErrorCode.COMMUNITY_IMAGE_NOT_FOUND);
+        }
+
+        // Hibernate 는 같은 flush 안에서 insert 를 delete 보다 먼저 수행하므로, 삭제를 먼저 반영시킨다.
+        communityImgRepository.deleteAll(targets);
+        communityImgRepository.flush();
+
+        return targets.stream()
+                .map(CommunityImg::getImageKey)
+                .toList();
+    }
+
+    // 새로 추가할 이미지가 사용할 시작 display_order 를 계산하는 로직
+    private int nextDisplayOrder(List<CommunityImg> currentImages) {
+        return currentImages.stream()
+                .mapToInt(CommunityImg::getDisplayOrder)
+                .max()
+                .orElse(-1) + 1;
     }
 
     // 목록의 게시글별 삭제되지 않은 댓글 수를 한 번의 집계 쿼리로 조회하는 로직
@@ -327,12 +434,11 @@ public class CommunityService {
                 ));
     }
 
-    // 상세 조회용: 첨부 이미지 전체의 S3 객체 키를 등록 순서(display_order)대로 Presigned URL로 변환하는 로직
-    private List<String> getImageUrls(Community community) {
+    // 상세/수정 응답용: 첨부 이미지 전체를 등록 순서(display_order)대로 id + Presigned URL 로 변환하는 로직
+    private List<CommunityImageResponseDTO> getImages(Community community) {
         return communityImgRepository.findByCommunityOrderByDisplayOrderAsc(community).stream()
-                .map(CommunityImg::getImageKey)
-                .map(this::createImageUrl)
-                .filter(Objects::nonNull)
+                .map(image -> CommunityConverter.toCommunityImageResponse(image, createImageUrl(image.getImageKey())))
+                .filter(image -> Objects.nonNull(image.imageUrl()))
                 .toList();
     }
 

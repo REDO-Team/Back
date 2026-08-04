@@ -13,7 +13,9 @@ public record CommunityDetailResponseDTO(
         String characterCode,
         String content,
         LocalDateTime createdAt,
+        // imageUrls 는 기존 클라이언트 호환을 위해 유지하고, 수정 시 삭제할 이미지를 지정할 수 있도록 images(id + url)를 함께 내려준다.
         List<String> imageUrls,
+        List<CommunityImageResponseDTO> images,
         String category,
         Long numComments,
         Integer numLikes,
