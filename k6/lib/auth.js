@@ -1,6 +1,6 @@
 import http from 'k6/http';
 
-import { isEnabled, requireEnv } from './guards.js';
+import { assertAuthenticationTransport, isEnabled, requireEnv } from './guards.js';
 
 export function resolveAccessToken(baseUrl) {
   if (__ENV.ACCESS_TOKEN) {
@@ -14,8 +14,10 @@ export function resolveAccessToken(baseUrl) {
 
   const loginId = requireEnv('TEST_LOGIN_ID');
   const password = requireEnv('TEST_PASSWORD');
+  const loginUrl = `${baseUrl}/api/auth/login`;
+  assertAuthenticationTransport(loginUrl);
   const response = http.post(
-    `${baseUrl}/api/auth/login`,
+    loginUrl,
     JSON.stringify({ loginId, password }),
     {
       headers: { 'Content-Type': 'application/json' },

@@ -1,3 +1,5 @@
+import { URL } from 'https://jslib.k6.io/url/1.0.0/index.js';
+
 const LOCAL_HOSTS = new Set([
   'localhost',
   '127.0.0.1',
@@ -17,12 +19,47 @@ export function requireEnv(name) {
   return String(value).trim();
 }
 
-function hostnameOf(baseUrl) {
-  const match = String(baseUrl).match(/^https?:\/\/([^/:?#]+)/i);
-  if (!match) {
-    throw new Error('BASE_URL must start with http:// or https://.');
+function parseHttpUrl(value, label) {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(String(value));
+  } catch (error) {
+    throw new Error(`${label} must be a valid http or https URL.`);
   }
-  return match[1].toLowerCase();
+
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    throw new Error(`${label} must use http or https.`);
+  }
+
+  if (parsedUrl.username || parsedUrl.password) {
+    throw new Error(`${label} must not include username or password.`);
+  }
+
+  return parsedUrl;
+}
+
+function hostnameOf(baseUrl) {
+  return parseHttpUrl(baseUrl, 'BASE_URL').hostname.toLowerCase();
+}
+
+export function assertAuthenticationTransport(requestUrl) {
+  const parsedUrl = parseHttpUrl(requestUrl, 'Authenticated request URL');
+  if (parsedUrl.protocol === 'https:') {
+    return;
+  }
+
+  const hostname = parsedUrl.hostname.toLowerCase();
+  if (LOCAL_HOSTS.has(hostname) && isEnabled(__ENV.ALLOW_INSECURE_LOCAL_AUTH)) {
+    return;
+  }
+
+  if (LOCAL_HOSTS.has(hostname)) {
+    throw new Error(
+      'Local HTTP authentication is blocked. Set ALLOW_INSECURE_LOCAL_AUTH=true only for local testing.'
+    );
+  }
+
+  throw new Error('Remote authentication requires HTTPS.');
 }
 
 export function assertSafeExecution({ write = false } = {}) {
@@ -30,6 +67,12 @@ export function assertSafeExecution({ write = false } = {}) {
   const hostname = hostnameOf(baseUrl);
   const isRemote = !LOCAL_HOSTS.has(hostname);
   const profile = __ENV.PROFILE || 'smoke';
+
+  if (!isRemote
+      && parseHttpUrl(baseUrl, 'BASE_URL').protocol === 'http:'
+      && isEnabled(__ENV.ALLOW_INSECURE_LOCAL_AUTH)) {
+    console.warn('Local HTTP authentication is enabled. Never use production credentials.');
+  }
 
   if (isRemote && !isEnabled(__ENV.ALLOW_REMOTE)) {
     throw new Error(

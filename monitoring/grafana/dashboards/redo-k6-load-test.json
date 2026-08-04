@@ -201,15 +201,15 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "avg by (name) (k6_http_req_duration_p95{testid=~\"$testid\",domain=~\"$domain\",scenario=~\"$scenario\",name=~\"$endpoint\"})",
-          "legendFormat": "p95 {{name}}",
+          "expr": "k6_http_req_duration_p95{testid=~\"$testid\",domain=~\"$domain\",scenario=~\"$scenario\",name=~\"$endpoint\"}",
+          "legendFormat": "p95 {{name}} status={{status}} expected={{expected_response}}",
           "range": true,
           "refId": "A"
         },
         {
           "editorMode": "code",
-          "expr": "avg by (name) (k6_http_req_duration_p99{testid=~\"$testid\",domain=~\"$domain\",scenario=~\"$scenario\",name=~\"$endpoint\"})",
-          "legendFormat": "p99 {{name}}",
+          "expr": "k6_http_req_duration_p99{testid=~\"$testid\",domain=~\"$domain\",scenario=~\"$scenario\",name=~\"$endpoint\"}",
+          "legendFormat": "p99 {{name}} status={{status}} expected={{expected_response}}",
           "range": true,
           "refId": "B"
         }

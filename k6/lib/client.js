@@ -1,6 +1,8 @@
 import { check } from 'k6';
 import http from 'k6/http';
 
+import { assertAuthenticationTransport } from './guards.js';
+
 function responseIsSuccess(response) {
   try {
     return response.json('isSuccess') === true;
@@ -29,8 +31,10 @@ export function apiRequest(
     Accept: 'application/json',
     ...headers,
   };
+  const requestUrl = `${baseUrl}${path}`;
 
   if (token) {
+    assertAuthenticationTransport(requestUrl);
     requestHeaders.Authorization = `Bearer ${token}`;
   }
 
@@ -49,7 +53,7 @@ export function apiRequest(
   }
 
   const payload = body === null ? null : JSON.stringify(body);
-  return http.request(normalizedMethod, `${baseUrl}${path}`, payload, params);
+  return http.request(normalizedMethod, requestUrl, payload, params);
 }
 
 export function checkApiSuccess(response, label, expectedStatus = 200) {

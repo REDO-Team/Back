@@ -10,6 +10,7 @@ services:
       AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
       PROFILE: ${PROFILE:-smoke}
       TEST_ID: ${TEST_ID:-}
+      ALLOW_INSECURE_LOCAL_AUTH: ${ALLOW_INSECURE_LOCAL_AUTH:-false}
       ALLOW_REMOTE: ${ALLOW_REMOTE:-false}
       ALLOW_WRITE: ${ALLOW_WRITE:-false}
       ALLOW_STRESS: ${ALLOW_STRESS:-false}

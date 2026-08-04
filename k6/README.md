@@ -77,6 +77,12 @@ AUTH_REQUIRED=true
 
 `ACCESS_TOKEN`을 입력하면 로그인 계정보다 우선 사용합니다. 인증이 필요 없는 공개 API는 인증값을 비우고 `AUTH_REQUIRED=false`로 설정합니다.
 
+로컬 HTTP에서 인증 API를 테스트할 때만 다음 값을 명시적으로 설정합니다. 이 옵션은 `localhost`, `127.0.0.1`, `host.docker.internal`, `app`에만 적용되며 원격 HTTP 인증 요청은 계속 차단됩니다.
+
+```dotenv
+ALLOW_INSECURE_LOCAL_AUTH=true
+```
+
 실제 계정, 비밀번호와 토큰이 포함된 `k6/.env`는 Git에서 제외되며 커밋하지 않습니다.
 
 ## 4. 시나리오 실행
@@ -159,6 +165,8 @@ Threshold를 초과하면 k6가 0이 아닌 종료 코드를 반환합니다. AP
 ## 7. 실행 안전장치
 
 - `localhost`, `127.0.0.1`, `host.docker.internal`, `app` 외 대상은 `ALLOW_REMOTE=true`가 필요합니다.
+- 로그인 정보와 Bearer 토큰은 HTTPS에서만 전송하며, 로컬 HTTP 인증은 `ALLOW_INSECURE_LOCAL_AUTH=true`를 직접 설정한 경우에만 허용합니다.
+- `ALLOW_INSECURE_LOCAL_AUTH=true`를 설정해도 원격 HTTP 인증 요청은 허용되지 않습니다.
 - POST·PUT·PATCH·DELETE 시나리오는 `assertSafeExecution({ write: true })`를 사용해야 합니다.
 - 데이터가 변경되는 시나리오는 `ALLOW_WRITE=true`가 필요합니다.
 - `stress` 프로필은 `ALLOW_STRESS=true`가 필요합니다.

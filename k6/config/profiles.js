@@ -1,8 +1,14 @@
 function positiveInteger(name, fallback) {
-  const value = Number.parseInt(__ENV[name] || `${fallback}`, 10);
-  if (!Number.isInteger(value) || value < 1) {
+  const rawValue = String(__ENV[name] || fallback);
+  if (!/^[1-9]\d*$/.test(rawValue)) {
     throw new Error(`${name} must be a positive integer.`);
   }
+
+  const value = Number(rawValue);
+  if (!Number.isSafeInteger(value)) {
+    throw new Error(`${name} must be a positive integer.`);
+  }
+
   return value;
 }
 
