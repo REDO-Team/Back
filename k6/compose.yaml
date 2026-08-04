@@ -1,0 +1,37 @@
+services:
+  k6:
+    image: grafana/k6:1.7.1
+    working_dir: /scripts
+    environment:
+      BASE_URL: ${BASE_URL:-http://host.docker.internal:8080}
+      TEST_LOGIN_ID: ${TEST_LOGIN_ID:-}
+      TEST_PASSWORD: ${TEST_PASSWORD:-}
+      ACCESS_TOKEN: ${ACCESS_TOKEN:-}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-true}
+      PROFILE: ${PROFILE:-smoke}
+      TEST_ID: ${TEST_ID:-}
+      ALLOW_REMOTE: ${ALLOW_REMOTE:-false}
+      ALLOW_WRITE: ${ALLOW_WRITE:-false}
+      ALLOW_STRESS: ${ALLOW_STRESS:-false}
+      ENDPOINT_PATH: ${ENDPOINT_PATH:-/api/contributions/me}
+      ENDPOINT_NAME: ${ENDPOINT_NAME:-my-contribution}
+      DOMAIN: ${DOMAIN:-contribution}
+      THINK_TIME_SECONDS: ${THINK_TIME_SECONDS:-1}
+      MAX_P95_MS: ${MAX_P95_MS:-500}
+      MAX_P99_MS: ${MAX_P99_MS:-1000}
+      MAX_ERROR_RATE: ${MAX_ERROR_RATE:-0.01}
+      SMOKE_VUS: ${SMOKE_VUS:-1}
+      SMOKE_ITERATIONS: ${SMOKE_ITERATIONS:-1}
+      LOAD_MAX_VUS: ${LOAD_MAX_VUS:-20}
+      STRESS_MAX_VUS: ${STRESS_MAX_VUS:-50}
+      REWARD_CONCURRENCY: ${REWARD_CONCURRENCY:-10}
+      REWARD_PRODUCT_ID: ${REWARD_PRODUCT_ID:-}
+      REWARD_RECEIVER_NAME: ${REWARD_RECEIVER_NAME:-}
+      REWARD_RECEIVER_PHONE: ${REWARD_RECEIVER_PHONE:-}
+      K6_PROMETHEUS_RW_SERVER_URL: ${K6_PROMETHEUS_RW_SERVER_URL:-http://host.docker.internal:9090/api/v1/write}
+      K6_PROMETHEUS_RW_TREND_STATS: ${K6_PROMETHEUS_RW_TREND_STATS:-p(95),p(99),min,max,avg}
+      K6_PROMETHEUS_RW_STALE_MARKERS: ${K6_PROMETHEUS_RW_STALE_MARKERS:-true}
+    volumes:
+      - ./:/scripts:ro
+    extra_hosts:
+      - host.docker.internal:host-gateway
