@@ -203,11 +203,11 @@ cp k6/scenarios/template.js \
 
 일반 팀원은 기본값인 `K6_OUTPUT=local`로 실행하고 터미널에서 Threshold와 응답 시간을 확인합니다. 팀용 HTTPS 접속 경로와 Grafana Viewer 계정을 발급받은 경우에는 `ReDO k6 Load Test` 대시보드에서 통합 결과도 조회할 수 있습니다.
 
-Viewer는 Grafana 대시보드 조회에만 사용하며 Monitoring EC2의 SSH 키, Grafana Admin 계정과 Prometheus 접근 권한은 공유하지 않습니다. k6 결과를 Prometheus로 전송하는 테스트는 모니터링 담당자가 실행합니다.
+Viewer는 Grafana 대시보드 조회에만 사용하며 Monitoring EC2의 SSH 키, Grafana Admin 계정과 Prometheus 접근 권한은 공유하지 않습니다. k6 결과를 Prometheus로 전송하는 테스트는 인프라 담당자가 실행합니다.
 
-### 모니터링 담당자: k6 결과 전송
+### 인프라 담당자: k6 결과 전송
 
-담당자는 외부에 공개되지 않은 Prometheus에 SSH 터널로 접근합니다.
+인프라 담당자는 외부에 공개되지 않은 Prometheus에 SSH 터널로 접근합니다.
 
 ```bash
 ssh -N \
@@ -231,7 +231,7 @@ K6_PROMETHEUS_RW_SERVER_URL=http://host.docker.internal:9090/api/v1/write
 
 ### 팀원: Viewer 계정으로 결과 확인
 
-담당자가 공유한 `TEST_ID`를 기준으로 Grafana의 `ReDO k6 Load Test` 대시보드에서 `testid`, `domain`, `scenario`, `endpoint`를 선택해 다음 항목을 확인합니다.
+인프라 담당자가 공유한 `TEST_ID`를 기준으로 Grafana의 `ReDO k6 Load Test` 대시보드에서 `testid`, `domain`, `scenario`, `endpoint`를 선택해 다음 항목을 확인합니다.
 
 - 가상 사용자 수와 초당 요청 수
 - HTTP 오류율
@@ -270,9 +270,9 @@ K6_PROMETHEUS_RW_SERVER_URL=http://host.docker.internal:9090/api/v1/write
 
 ### Grafana에 결과가 나타나지 않는 경우
 
-- 팀원은 담당자가 공유한 `TEST_ID`와 대시보드 필터가 일치하는지 확인합니다.
+- 팀원은 인프라 담당자가 공유한 `TEST_ID`와 대시보드 필터가 일치하는지 확인합니다.
 - Viewer 계정으로 로그인했는지 확인합니다.
-- 담당자는 SSH 터널의 `9090` 연결이 유지되는지 확인합니다.
+- 인프라 담당자는 SSH 터널의 `9090` 연결이 유지되는지 확인합니다.
 - `K6_OUTPUT=prometheus`인지 확인합니다.
 - `K6_PROMETHEUS_RW_SERVER_URL`이 `/api/v1/write`를 가리키는지 확인합니다.
 - k6 실행 로그에 Prometheus Remote Write 오류가 없는지 확인합니다.

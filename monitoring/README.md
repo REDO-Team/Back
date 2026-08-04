@@ -2,7 +2,7 @@
 
 ReDO 운영 환경의 애플리케이션·EC2·Redis 메트릭과 컨테이너 로그를 수집하고, Grafana 대시보드와 Discord 알림으로 관찰하기 위한 구성입니다.
 
-이 문서의 서버 실행, SSH 터널과 Prometheus 관리 절차는 Monitoring EC2 접근 권한이 있는 운영 담당자를 대상으로 합니다. 팀원은 별도로 발급받은 Grafana Viewer 계정으로 대시보드를 조회하며, SSH 키나 Grafana Admin 계정은 공유하지 않습니다.
+이 문서의 서버 실행, SSH 터널과 Prometheus 관리 절차는 Monitoring EC2 접근 권한이 있는 인프라 담당자를 대상으로 합니다. 팀원은 별도로 발급받은 Grafana Viewer 계정으로 대시보드를 조회하며, SSH 키나 Grafana Admin 계정은 공유하지 않습니다.
 
 ## 1. 구성 개요
 
@@ -61,7 +61,7 @@ monitoring/
 | Monitoring EC2 → Service EC2 | TCP 9101 | Spring Boot 메트릭 수집 |
 | Monitoring EC2 → Service EC2 | TCP 9121 | Redis 메트릭 수집 |
 | Service EC2 → Monitoring EC2 | TCP 3100 | Alloy 로그 전송 |
-| 관리자 → Monitoring EC2 | TCP 22 | SSH 및 Grafana·Prometheus 터널 |
+| 인프라 담당자 → Monitoring EC2 | TCP 22 | SSH 및 Grafana·Prometheus 터널 |
 
 보안 그룹의 소스는 가능하면 상대 EC2의 보안 그룹으로 제한합니다. `3000`, `9090`, `3100`, `9100`, `9101`, `9121`을 인터넷 전체에 공개하지 않습니다.
 
@@ -225,9 +225,9 @@ Grafana의 `Explore`에서 Loki를 선택한 뒤 다음 쿼리로 로그 유입�
 
 ## 8. Grafana와 Prometheus 접속
 
-### 운영 담당자: Grafana·Prometheus 관리
+### 인프라 담당자: Grafana·Prometheus 관리
 
-운영 담당자는 로컬 PC에서 Monitoring EC2로 SSH 터널을 연결합니다.
+인프라 담당자는 로컬 PC에서 Monitoring EC2로 SSH 터널을 연결합니다.
 
 ```bash
 ssh -N \
@@ -258,19 +258,19 @@ docker compose \
 
 ### 팀원: Grafana Viewer
 
-팀용 HTTPS 접속 경로가 구성된 환경에서 관리자가 팀원별 Grafana 계정을 생성하고 조직 역할을 `Viewer`로 지정합니다.
+팀용 HTTPS 접속 경로가 구성된 환경에서 인프라 담당자가 팀원별 Grafana 계정을 생성하고 조직 역할을 `Viewer`로 지정합니다.
 
 - 접속 주소: `https://<GRAFANA_DOMAIN>`
 - 계정은 팀원별로 발급하며 공용 계정을 사용하지 않습니다.
 - Viewer 계정으로 대시보드와 부하 테스트 결과를 조회합니다.
 - Grafana Admin 계정, Monitoring EC2 SSH 키와 Prometheus 접근 권한은 공유하지 않습니다.
-- 회원가입은 비활성화하고 계정 생성과 회수는 관리자가 수행합니다.
+- 회원가입은 비활성화하고 계정 생성과 회수는 인프라 담당자가 수행합니다.
 
 ## 9. k6 부하 테스트 연동
 
-### 운영 담당자: k6 결과 전송
+### 인프라 담당자: k6 결과 전송
 
-Prometheus는 운영 담당자가 실행한 k6의 Remote Write 결과를 받을 수 있도록 구성되어 있습니다. 담당자는 로컬 PC에서 Monitoring EC2의 `9090` 포트로 SSH 터널을 연결한 뒤 `k6/.env`를 설정합니다.
+Prometheus는 인프라 담당자가 실행한 k6의 Remote Write 결과를 받을 수 있도록 구성되어 있습니다. 인프라 담당자는 로컬 PC에서 Monitoring EC2의 `9090` 포트로 SSH 터널을 연결한 뒤 `k6/.env`를 설정합니다.
 
 ```dotenv
 K6_OUTPUT=prometheus
@@ -285,7 +285,7 @@ K6_PROMETHEUS_RW_SERVER_URL=http://host.docker.internal:9090/api/v1/write
 
 ### 팀원: Viewer 계정으로 결과 확인
 
-일반 팀원은 k6의 `local` 출력으로 기본 결과를 확인하고, 담당자가 공유한 `TEST_ID`로 Grafana의 `ReDO k6 Load Test` 대시보드를 조회합니다. Viewer 계정은 Prometheus나 Monitoring EC2 접근 권한을 요구하지 않습니다.
+일반 팀원은 k6의 `local` 출력으로 기본 결과를 확인하고, 인프라 담당자가 공유한 `TEST_ID`로 Grafana의 `ReDO k6 Load Test` 대시보드를 조회합니다. Viewer 계정은 Prometheus나 Monitoring EC2 접근 권한을 요구하지 않습니다.
 
 Grafana의 `ReDO k6 Load Test` 대시보드에서 `testid`, `domain`, `scenario`, `endpoint`를 선택해 결과와 애플리케이션·EC2·Redis 자원 사용량을 함께 확인합니다. 자세한 실행 방법과 안전장치는 [k6 부하 테스트 운영 가이드](../k6/README.md)를 참고합니다.
 
