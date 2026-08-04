@@ -34,6 +34,10 @@ public enum CommunitySuccessCode implements BaseSuccessCode {
             "COMMUNITY_200_006",
             "좋아요를 취소했습니다."),
 
+    UPDATE_COMMUNITY_POST_SUCCESS(HttpStatus.OK,
+            "COMMUNITY_200_007",
+            "커뮤니티 게시글 수정에 성공했습니다."),
+
     CREATE_COMMUNITY_POST_SUCCESS(HttpStatus.CREATED,
             "COMMUNITY_201_001",
             "커뮤니티 게시글 등록에 성공했습니다."),

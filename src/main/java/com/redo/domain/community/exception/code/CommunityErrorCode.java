@@ -52,7 +52,11 @@ public enum CommunityErrorCode implements BaseErrorCode {
 
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND,
             "COMMUNITY_404_002",
-            "댓글이 존재하지 않습니다.");
+            "댓글이 존재하지 않습니다."),
+
+    COMMUNITY_IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "COMMUNITY_404_003",
+            "게시글 이미지가 존재하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

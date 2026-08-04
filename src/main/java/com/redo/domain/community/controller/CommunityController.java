@@ -3,6 +3,7 @@ package com.redo.domain.community.controller;
 import com.redo.domain.community.converter.CommunityConverter;
 import com.redo.domain.community.dto.req.CommunityCommentCreateRequestDTO;
 import com.redo.domain.community.dto.req.CommunityCreateRequestDTO;
+import com.redo.domain.community.dto.req.CommunityUpdateRequestDTO;
 import com.redo.domain.community.dto.res.CommunityCommentCreateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCommentDeleteResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCommentListResponseDTO;
@@ -11,6 +12,7 @@ import com.redo.domain.community.dto.res.CommunityDeleteResponseDTO;
 import com.redo.domain.community.dto.res.CommunityDetailResponseDTO;
 import com.redo.domain.community.dto.res.CommunityLikeResponseDTO;
 import com.redo.domain.community.dto.res.CommunityPageResponseDTO;
+import com.redo.domain.community.dto.res.CommunityUpdateResponseDTO;
 import com.redo.domain.community.exception.CommunityException;
 import com.redo.domain.community.exception.code.CommunityErrorCode;
 import com.redo.domain.community.exception.code.CommunitySuccessCode;
@@ -99,9 +101,24 @@ public class CommunityController {
         );
     }
 
+    // 커뮤니티 게시글 수정 API
+    // 톰캣이 multipart 본문을 파싱하는 메서드가 기본적으로 POST 뿐이라(PUT/PATCH 는 텍스트 필드가 누락된다) POST 로 제공한다.
+    @PostMapping(value = "/{communityId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<CommunityUpdateResponseDTO> updateCommunityPost(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long communityId,
+            @Valid @ModelAttribute CommunityUpdateRequestDTO request
+    ) {
+        return ApiResponse.onSuccess(
+                CommunitySuccessCode.UPDATE_COMMUNITY_POST_SUCCESS,
+                communityService.updateCommunityPost(userId, communityId, request)
+        );
+    }
+
     // 커뮤니티 게시글 댓글 목록 조회 API
     @GetMapping("/{communityId}/comments")
     public ApiResponse<CommunityCommentListResponseDTO> getCommunityComments(
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long communityId,
             @RequestParam(required = false) Long cursor,
             @RequestParam(required = false) Integer length
@@ -112,7 +129,7 @@ public class CommunityController {
 
         return ApiResponse.onSuccess(
                 CommunitySuccessCode.GET_COMMUNITY_COMMENTS_SUCCESS,
-                communityService.getCommunityComments(communityId, cursor, length)
+                communityService.getCommunityComments(userId, communityId, cursor, length)
         );
     }
 
