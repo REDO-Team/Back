@@ -2,11 +2,13 @@ package com.redo.domain.community.service;
 
 import com.redo.domain.community.converter.CommunityConverter;
 import com.redo.domain.community.dto.req.CommunityCommentCreateRequestDTO;
+import com.redo.domain.community.dto.req.CommunityCommentUpdateRequestDTO;
 import com.redo.domain.community.dto.req.CommunityCreateRequestDTO;
 import com.redo.domain.community.dto.req.CommunityUpdateRequestDTO;
 import com.redo.domain.community.dto.res.CommunityCommentCreateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCommentDeleteResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCommentListResponseDTO;
+import com.redo.domain.community.dto.res.CommunityCommentUpdateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCreateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityDeleteResponseDTO;
 import com.redo.domain.community.dto.res.CommunityDetailResponseDTO;
@@ -231,9 +233,40 @@ public class CommunityService {
         return CommunityConverter.toCommunityCommentCreateResponse(comment.getId());
     }
 
+    // 댓글 수정 로직(작성자만 가능. 내용만 갱신한다)
+    @Transactional
+    public CommunityCommentUpdateResponseDTO updateCommunityComment(
+            Long userId,
+            Long communityId,
+            Long commentId,
+            CommunityCommentUpdateRequestDTO request
+    ) {
+        if (request.comment() == null || request.comment().isBlank()) {
+            throw new CommunityException(CommunityErrorCode.COMMENT_REQUIRED);
+        }
+
+        CommunityComment comment = getOwnedComment(userId, communityId, commentId);
+
+        comment.update(request.comment());
+
+        // 응답에 갱신된 updatedAt(@PreUpdate 로 채워진다)을 담기 위해 변경 내용을 먼저 반영한다.
+        communityCommentRepository.flush();
+
+        return CommunityConverter.toCommunityCommentUpdateResponse(comment);
+    }
+
     // 댓글 삭제 로직(소프트 삭제)
     @Transactional
     public CommunityCommentDeleteResponseDTO deleteCommunityComment(Long userId, Long communityId, Long commentId) {
+        CommunityComment comment = getOwnedComment(userId, communityId, commentId);
+
+        comment.softDelete();
+
+        return CommunityConverter.toCommunityCommentDeleteResponse(comment.getId());
+    }
+
+    // 수정/삭제 공통: 해당 게시글에 달린 삭제되지 않은 본인 댓글을 조회하는 로직
+    private CommunityComment getOwnedComment(Long userId, Long communityId, Long commentId) {
         Community community = getActiveCommunity(communityId);
 
         CommunityComment comment = communityCommentRepository.findByIdAndDeletedAtIsNull(commentId)
@@ -247,9 +280,7 @@ public class CommunityService {
             throw new CommunityException(CommunityErrorCode.NOT_COMMENT_OWNER);
         }
 
-        comment.softDelete();
-
-        return CommunityConverter.toCommunityCommentDeleteResponse(comment.getId());
+        return comment;
     }
 
     // 게시글 좋아요 로직

@@ -4,6 +4,7 @@ import com.redo.domain.community.dto.res.CommunityCommentCreateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCommentDeleteResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCommentListResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCommentResponseDTO;
+import com.redo.domain.community.dto.res.CommunityCommentUpdateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCreateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityDeleteResponseDTO;
 import com.redo.domain.community.dto.res.CommunityDetailResponseDTO;
@@ -198,6 +199,14 @@ public class CommunityConverter {
 
     public static CommunityCommentCreateResponseDTO toCommunityCommentCreateResponse(Long commentId) {
         return new CommunityCommentCreateResponseDTO(commentId);
+    }
+
+    public static CommunityCommentUpdateResponseDTO toCommunityCommentUpdateResponse(CommunityComment comment) {
+        return new CommunityCommentUpdateResponseDTO(
+                comment.getId(),
+                comment.getContent(),
+                comment.getUpdatedAt()
+        );
     }
 
     public static CommunityCommentDeleteResponseDTO toCommunityCommentDeleteResponse(Long commentId) {

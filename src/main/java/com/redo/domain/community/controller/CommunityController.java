@@ -2,11 +2,13 @@ package com.redo.domain.community.controller;
 
 import com.redo.domain.community.converter.CommunityConverter;
 import com.redo.domain.community.dto.req.CommunityCommentCreateRequestDTO;
+import com.redo.domain.community.dto.req.CommunityCommentUpdateRequestDTO;
 import com.redo.domain.community.dto.req.CommunityCreateRequestDTO;
 import com.redo.domain.community.dto.req.CommunityUpdateRequestDTO;
 import com.redo.domain.community.dto.res.CommunityCommentCreateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCommentDeleteResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCommentListResponseDTO;
+import com.redo.domain.community.dto.res.CommunityCommentUpdateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityCreateResponseDTO;
 import com.redo.domain.community.dto.res.CommunityDeleteResponseDTO;
 import com.redo.domain.community.dto.res.CommunityDetailResponseDTO;
@@ -30,6 +32,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -144,6 +147,20 @@ public class CommunityController {
         return ApiResponse.onSuccess(
                 CommunitySuccessCode.CREATE_COMMUNITY_COMMENT_SUCCESS,
                 communityService.createCommunityComment(userId, communityId, request)
+        );
+    }
+
+    // 커뮤니티 게시글 댓글 수정 API
+    @PatchMapping("/{communityId}/comment/{commentId}")
+    public ApiResponse<CommunityCommentUpdateResponseDTO> updateCommunityComment(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long communityId,
+            @PathVariable Long commentId,
+            @Valid @RequestBody CommunityCommentUpdateRequestDTO request
+    ) {
+        return ApiResponse.onSuccess(
+                CommunitySuccessCode.UPDATE_COMMUNITY_COMMENT_SUCCESS,
+                communityService.updateCommunityComment(userId, communityId, commentId, request)
         );
     }
 
