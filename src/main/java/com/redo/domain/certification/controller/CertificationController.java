@@ -50,12 +50,12 @@ public class CertificationController {
                     | --- | --- | --- |
                     | `CERTIFICATION200_0` | `NONE` | 현재 새로운 인증을 시작할 수 있습니다. |
                     | `CERTIFICATION200_1` | `DAILY_LIMIT_EXCEEDED` | 오늘 `PASSED` 인증이 3회 이상이어서 새로운 인증을 시작할 수 없습니다. |
-                    | `CERTIFICATION200_8` | `COOLDOWN` | 직전 완료 인증(`PASSED` 또는 `FAILED`) 후 5분이 지나지 않았습니다. `retryAvailableAt`, `remainingSeconds`로 재시도 가능 시점을 확인합니다. |
+                    | `CERTIFICATION200_8` | `COOLDOWN` | 최근 성공 인증(`PASSED`) 후 5분이 지나지 않았습니다. `retryAvailableAt`, `remainingSeconds`로 재시도 가능 시점을 확인합니다. |
                     | `CERTIFICATION200_9` | `PROCESSING_EXISTS` | 진행 중인 인증이 있어 새로운 인증을 시작할 수 없습니다. `processingCertificationId`, `statusPath`로 기존 인증 상태를 조회합니다. |
 
                     제한 상태의 적용 우선순위는 `DAILY_LIMIT_EXCEEDED` → `PROCESSING_EXISTS`
-                    → `COOLDOWN` → `NONE`입니다. 실패 인증 재촬영은 5분 제한 대상이 아니며,
-                    이 API의 `COOLDOWN`은 새로운 인증 생성에 대한 안내입니다.
+                    → `COOLDOWN` → `NONE`입니다. `FAILED`는 신규 인증 쿨다운을 생성하거나
+                    연장하지 않으며, 실패 인증 재촬영도 5분 제한 대상이 아닙니다.
 
                     리워드 지급 후보 포인트는 쓰레기 종류와 무관하게 일반 인증(`GENERAL`) 50P,
                     검색 후 인증(`AFTER_SEARCH`) 100P입니다.
@@ -91,8 +91,9 @@ public class CertificationController {
                     - `GENERAL`: `image`, `certificationSource=GENERAL`을 보내고 `recycleGuideId`는 생략합니다.
                     - `AFTER_SEARCH`: `image`, `certificationSource=AFTER_SEARCH`, DB에 존재하는 `recycleGuideId`를 보냅니다.
                     - 실시간 촬영 여부는 프론트가 보장하며 서버는 빈 파일, 최대 크기와 이미지 형식을 검증합니다.
-                    - 신규 생성 제한 우선순위는 일일 PASSED 3회 → 기존 PROCESSING → 직전 완료 후 5분입니다.
+                    - 신규 생성 제한 우선순위는 일일 PASSED 3회 → 기존 PROCESSING → 최근 PASSED 후 5분입니다.
                     - 제한 시간과 일일 경계는 `Asia/Seoul` 기준입니다.
+                    - FAILED는 신규 인증 쿨다운을 생성하거나 연장하지 않습니다.
                     - 실패 인증 재촬영은 이 API가 아니며 5분 제한에서 제외됩니다.
 
                     최종 성공 응답에는 `pollingIntervalSeconds`, `statusPath`, `resultPath`가
@@ -117,7 +118,7 @@ public class CertificationController {
                     | 412 | `CERTIFICATION412_0` | `ACTIVE_TEMPLATE_NOT_FOUND` | 결정된 guide의 active template 없음 | `recycleGuideId` | 생성 중단 안내 |
                     | 413 | `S3_413_001` | 없음(code로 분기) | 공통 S3 최대 크기 초과 | 문자열 `errorDetail` | 작은 이미지로 다시 촬영 |
                     | 429 | `CERTIFICATION429_0` | `DAILY_LIMIT_EXCEEDED` | 오늘 PASSED 3회 이상 | `dailyLimit`, `usedCount` | 당일 신규 인증 차단 |
-                    | 429 | `CERTIFICATION429_1` | `COOLDOWN` | 직전 PASSED/FAILED 완료 후 5분 미경과 | `retryAvailableAt`, `remainingSeconds` | 카운트다운 후 재시도 |
+                    | 429 | `CERTIFICATION429_1` | `COOLDOWN` | 최근 PASSED 후 5분 미경과 | `retryAvailableAt`, `remainingSeconds` | 카운트다운 후 재시도 |
                     | 500 | `S3_500_001` | 없음(code로 분기) | S3 업로드 실패 | 문자열 `errorDetail` | 잠시 후 재시도 |
                     | 500 | `CERTIFICATION500_0` | `IMAGE_READ_FAILED` | 판정용 S3 이미지 조회 실패 | `type` | 시스템 오류 안내 |
                     | 500 | `GEMINI_500_001` | code로 분기 | Gemini 응답 JSON이 비어 있거나 계약 위반 | 문자열 `errorDetail` | 시스템 오류 안내 |
@@ -164,7 +165,7 @@ public class CertificationController {
                     - JWT 인증이 필요하며 본인 소유 인증만 재촬영할 수 있습니다.
                     - multipart 필드는 실시간 재촬영한 `image` 하나입니다. source, guide와 reward point는 다시 받지 않습니다.
                     - `FAILED/VLM_JUDGEMENT_FAILED`만 재촬영할 수 있습니다.
-                    - 실패 인증 재촬영은 직전 완료 후 5분 제한을 적용하지 않습니다.
+                    - 실패 인증 재촬영은 신규 인증에 적용되는 최근 PASSED 후 5분 제한을 적용하지 않습니다.
                     - 오늘 `PASSED` 3회 제한과 다른 `PROCESSING` 인증 존재 여부는 다시 검사합니다.
                     - GENERAL도 최초 판정에서 확정된 DB guide를 유지하며 품목 분류를 반복하지 않습니다.
                     - 기존 source와 reward point snapshot을 유지하고 접수된 재촬영마다 `attemptCount`가 증가합니다.

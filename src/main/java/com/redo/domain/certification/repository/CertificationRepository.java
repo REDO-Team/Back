@@ -57,8 +57,8 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
             Collection<CertificationStatus> statuses
     );
 
-    Optional<Certification> findTopByUserIdAndStatusInAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+    Optional<Certification> findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
             Long userId,
-            Collection<CertificationStatus> statuses
+            CertificationStatus status
     );
 }

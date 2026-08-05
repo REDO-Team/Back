@@ -23,6 +23,27 @@ class CertificationOpenApiTest {
     private MockMvc mockMvc;
 
     @Test
+    void documentsPassedOnlyCooldownPolicy() throws Exception {
+        mockMvc.perform(get("/v3/api-docs/03-certification"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification'].get.description"
+                ).value(org.hamcrest.Matchers.containsString(
+                        "최근 성공 인증(`PASSED`) 후 5분"
+                )))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification'].get.description"
+                ).value(org.hamcrest.Matchers.containsString(
+                        "`FAILED`는 신규 인증 쿨다운을 생성하거나"
+                )))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification'].get.description"
+                ).value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(
+                        "직전 완료 인증(`PASSED` 또는 `FAILED`)"
+                ))));
+    }
+
+    @Test
     void documentsMultipartContractAndFrontendOutcomes() throws Exception {
         mockMvc.perform(get("/v3/api-docs/03-certification"))
                 .andExpect(status().isOk())
@@ -45,6 +66,14 @@ class CertificationOpenApiTest {
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].post.description"
                 ).value(org.hamcrest.Matchers.containsString("PROCESSING_EXISTS")))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification'].post.description"
+                ).value(org.hamcrest.Matchers.containsString("최근 PASSED 후 5분")))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification'].post.description"
+                ).value(org.hamcrest.Matchers.containsString(
+                        "FAILED는 신규 인증 쿨다운을 생성하거나 연장하지 않습니다"
+                )))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].post.description"
                 ).value(org.hamcrest.Matchers.containsString("S3_413_001")))

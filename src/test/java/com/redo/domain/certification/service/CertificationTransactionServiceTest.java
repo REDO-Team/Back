@@ -13,6 +13,8 @@ import com.redo.domain.certification.enums.CertificationFailureType;
 import com.redo.domain.certification.enums.CertificationRestrictionType;
 import com.redo.domain.certification.enums.CertificationSource;
 import com.redo.domain.certification.enums.CertificationStatus;
+import com.redo.domain.certification.exception.CertificationException;
+import com.redo.domain.certification.exception.code.CertificationErrorCode;
 import com.redo.domain.certification.repository.AiJudgementRepository;
 import com.redo.domain.certification.repository.CertificationRepository;
 import com.redo.domain.certification.service.policy.CertificationPolicyEvaluator;
@@ -38,6 +40,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
@@ -129,6 +132,31 @@ class CertificationTransactionServiceTest {
         assertThat(certificationCaptor.getValue().getStatus())
                 .isEqualTo(CertificationStatus.PROCESSING);
         assertThat(certificationCaptor.getValue().getRewardPoint()).isEqualTo(100);
+    }
+
+    @Test
+    void blocksNewCertificationDuringRecentPassedCooldown() {
+        when(userRepository.findByIdForUpdate(USER_ID)).thenReturn(Optional.of(user));
+        when(policyEvaluator.evaluate(USER_ID)).thenReturn(new CertificationPolicyResult(
+                1,
+                CertificationRestrictionType.COOLDOWN,
+                LocalDateTime.of(2026, 7, 31, 14, 8),
+                300,
+                null,
+                null
+        ));
+
+        assertThatThrownBy(() -> service.createProcessing(
+                USER_ID,
+                CertificationSource.GENERAL,
+                null,
+                "certifications/42/image.jpg"
+        ))
+                .isInstanceOf(CertificationException.class)
+                .extracting("errorCode")
+                .isEqualTo(CertificationErrorCode.COOLDOWN);
+
+        verify(certificationRepository, never()).saveAndFlush(any());
     }
 
     @Test

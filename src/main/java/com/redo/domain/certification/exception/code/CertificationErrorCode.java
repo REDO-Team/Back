@@ -58,7 +58,7 @@ public enum CertificationErrorCode implements BaseErrorCode {
     COOLDOWN(
             HttpStatus.TOO_MANY_REQUESTS,
             "CERTIFICATION429_1",
-            "이전 인증 완료 후 5분이 지나야 새로운 인증을 시작할 수 있습니다."
+            "이전 성공 인증 후 5분이 지나야 새로운 인증을 시작할 수 있습니다."
     ),
     IMAGE_READ_FAILED(
             HttpStatus.INTERNAL_SERVER_ERROR,
