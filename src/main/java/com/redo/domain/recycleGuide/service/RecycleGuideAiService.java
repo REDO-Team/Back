@@ -54,8 +54,8 @@ public class RecycleGuideAiService {
 
         String jsonSchema = """
                 {
-//                  "type": "object",
-//                  "properties": {
+                  "type": "object",
+                  "properties": {
                     "name": { "type": "string", "description": "The exact matched item name from the list, or NOT_FOUND" },
                     "reason": { "type": "string", "description": "해당 항목을 선택한 이유를 반드시 한국어로 작성" }
                   },
