@@ -133,6 +133,20 @@ class CertificationControllerTest {
     }
 
     @Test
+    void cooldownHomeMessageRefersToSuccessfulCertification() throws Exception {
+        stubAuthentication();
+        when(certificationHomeService.getHome(USER_ID))
+                .thenReturn(homeResponse(CertificationRestrictionType.COOLDOWN));
+
+        mockMvc.perform(get("/api/certification")
+                        .header("Authorization", "Bearer " + ACCESS_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("CERTIFICATION200_8"))
+                .andExpect(jsonPath("$.message")
+                        .value("이전 성공 인증 후 5분이 지나야 다시 인증할 수 있습니다."));
+    }
+
+    @Test
     void rejectsUnauthenticatedRequest() throws Exception {
         mockMvc.perform(get("/api/certification"))
                 .andExpect(status().isUnauthorized())

@@ -11,7 +11,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 import static com.redo.domain.certification.config.CertificationTimeConfig.CERTIFICATION_CLOCK;
@@ -24,9 +23,6 @@ public class CertificationPolicyEvaluator {
     public static final long COOLDOWN_SECONDS = 300;
     public static final int SAME_GUIDE_DAILY_LIMIT = 1;
     public static final boolean LIVE_CAPTURE_ONLY = true;
-
-    private static final List<CertificationStatus> COMPLETED_STATUSES =
-            List.of(CertificationStatus.PASSED, CertificationStatus.FAILED);
 
     private final CertificationRepository certificationRepository;
     private final Clock clock;
@@ -73,18 +69,18 @@ public class CertificationPolicyEvaluator {
             );
         }
 
-        Optional<Certification> recentCompleted =
+        Optional<Certification> recentPassed =
                 certificationRepository
-                        .findTopByUserIdAndStatusInAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+                        .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
                                 userId,
-                                COMPLETED_STATUSES
+                                CertificationStatus.PASSED
                         );
-        if (recentCompleted.isEmpty()) {
+        if (recentPassed.isEmpty()) {
             return empty(usedCount, CertificationRestrictionType.NONE);
         }
 
         LocalDateTime retryAvailableAt =
-                recentCompleted.get().getJudgedAt().plusSeconds(COOLDOWN_SECONDS);
+                recentPassed.get().getJudgedAt().plusSeconds(COOLDOWN_SECONDS);
         if (!now.isBefore(retryAvailableAt)) {
             return empty(usedCount, CertificationRestrictionType.NONE);
         }

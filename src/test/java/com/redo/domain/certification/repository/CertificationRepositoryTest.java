@@ -10,8 +10,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
@@ -41,9 +39,9 @@ class CertificationRepositoryTest {
                         CertificationStatus.PROCESSING
                 )).isEmpty();
         assertThat(certificationRepository
-                .findTopByUserIdAndStatusInAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
                         999L,
-                        List.of(CertificationStatus.PASSED, CertificationStatus.FAILED)
+                        CertificationStatus.PASSED
                 )).isEmpty();
     }
 }

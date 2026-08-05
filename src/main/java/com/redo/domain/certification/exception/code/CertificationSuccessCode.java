@@ -25,7 +25,7 @@ public enum CertificationSuccessCode implements BaseSuccessCode {
     GET_HOME_COOLDOWN(
             HttpStatus.OK,
             "CERTIFICATION200_8",
-            "이전 인증 후 5분이 지나야 다시 인증할 수 있습니다."
+            "이전 성공 인증 후 5분이 지나야 다시 인증할 수 있습니다."
     ),
     GET_HOME_PROCESSING_EXISTS(
             HttpStatus.OK,

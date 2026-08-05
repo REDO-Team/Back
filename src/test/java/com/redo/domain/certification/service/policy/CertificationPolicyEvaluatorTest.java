@@ -14,7 +14,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,9 +33,6 @@ class CertificationPolicyEvaluatorTest {
             LocalDateTime.of(2026, 7, 22, 0, 0);
     private static final LocalDateTime TOMORROW_START =
             LocalDateTime.of(2026, 7, 23, 0, 0);
-    private static final List<CertificationStatus> COMPLETED =
-            List.of(CertificationStatus.PASSED, CertificationStatus.FAILED);
-
     @Mock
     private CertificationRepository certificationRepository;
 
@@ -55,9 +51,9 @@ class CertificationPolicyEvaluatorTest {
         stubUsedCount(0);
         stubNoProcessing();
         when(certificationRepository
-                .findTopByUserIdAndStatusInAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
                         USER_ID,
-                        COMPLETED
+                        CertificationStatus.PASSED
                 )).thenReturn(Optional.empty());
 
         CertificationPolicyResult result = evaluator.evaluate(USER_ID);
@@ -98,24 +94,44 @@ class CertificationPolicyEvaluatorTest {
         assertThat(result.processingCertificationId()).isEqualTo(101L);
         assertThat(result.statusPath()).isEqualTo("/api/certification/101/status");
         verify(certificationRepository, never())
-                .findTopByUserIdAndStatusInAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
                         USER_ID,
-                        COMPLETED
+                        CertificationStatus.PASSED
                 );
     }
 
     @Test
-    void cooldownUsesLatestPassedOrFailedAndRoundsUpSeconds() {
+    void failedHistoryDoesNotCreateCooldown() {
+        stubUsedCount(0);
+        stubNoProcessing();
+        when(certificationRepository
+                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+                        USER_ID,
+                        CertificationStatus.PASSED
+                )).thenReturn(Optional.empty());
+
+        CertificationPolicyResult result = evaluator.evaluate(USER_ID);
+
+        assertThat(result.type()).isEqualTo(CertificationRestrictionType.NONE);
+        verify(certificationRepository)
+                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+                        USER_ID,
+                        CertificationStatus.PASSED
+                );
+    }
+
+    @Test
+    void cooldownUsesLatestPassedAndRoundsUpSeconds() {
         stubUsedCount(1);
         stubNoProcessing();
-        Certification completed = mock(Certification.class);
-        when(completed.getJudgedAt())
+        Certification passed = mock(Certification.class);
+        when(passed.getJudgedAt())
                 .thenReturn(LocalDateTime.of(2026, 7, 22, 13, 3, 2, 500_000_000));
         when(certificationRepository
-                .findTopByUserIdAndStatusInAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
                         USER_ID,
-                        COMPLETED
-                )).thenReturn(Optional.of(completed));
+                        CertificationStatus.PASSED
+                )).thenReturn(Optional.of(passed));
 
         CertificationPolicyResult result = evaluator.evaluate(USER_ID);
 
@@ -129,18 +145,37 @@ class CertificationPolicyEvaluatorTest {
     void cooldownEndsAtExactlyFiveMinutes() {
         stubUsedCount(1);
         stubNoProcessing();
-        Certification completed = mock(Certification.class);
-        when(completed.getJudgedAt())
+        Certification passed = mock(Certification.class);
+        when(passed.getJudgedAt())
                 .thenReturn(LocalDateTime.of(2026, 7, 22, 13, 0));
         when(certificationRepository
-                .findTopByUserIdAndStatusInAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
                         USER_ID,
-                        COMPLETED
-                )).thenReturn(Optional.of(completed));
+                        CertificationStatus.PASSED
+                )).thenReturn(Optional.of(passed));
 
         CertificationPolicyResult result = evaluator.evaluate(USER_ID);
 
         assertThat(result.type()).isEqualTo(CertificationRestrictionType.NONE);
+    }
+
+    @Test
+    void failedAfterPassedDoesNotExtendPassedCooldown() {
+        stubUsedCount(1);
+        stubNoProcessing();
+        Certification passed = mock(Certification.class);
+        when(passed.getJudgedAt())
+                .thenReturn(LocalDateTime.of(2026, 7, 22, 13, 0));
+        when(certificationRepository
+                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+                        USER_ID,
+                        CertificationStatus.PASSED
+                )).thenReturn(Optional.of(passed));
+
+        CertificationPolicyResult result = evaluator.evaluate(USER_ID);
+
+        assertThat(result.type()).isEqualTo(CertificationRestrictionType.NONE);
+        assertThat(result.retryAvailableAt()).isNull();
     }
 
     @Test
@@ -154,9 +189,9 @@ class CertificationPolicyEvaluatorTest {
         stubUsedCount(0);
         stubNoProcessing();
         when(certificationRepository
-                .findTopByUserIdAndStatusInAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
                         USER_ID,
-                        COMPLETED
+                        CertificationStatus.PASSED
                 )).thenReturn(Optional.empty());
 
         evaluator.evaluate(USER_ID);
