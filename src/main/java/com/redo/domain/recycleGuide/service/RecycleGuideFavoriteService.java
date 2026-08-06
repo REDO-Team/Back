@@ -16,6 +16,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -56,5 +58,10 @@ public class RecycleGuideFavoriteService {
         } catch (DataIntegrityViolationException e) {
             throw new GeneralException(RecycleGuideErrorCode.FAVORITE_ALREADY_EXISTS);
         }
+    }
+
+    public RecycleGuideFavoriteResponseDTO.FavoriteGuideListDTO getFavoriteGuides(Long userId) {
+        List<RecycleGuideFavorite> favorites = recycleGuideFavoriteRepository.findAllByUserId(userId);
+        return RecycleGuideFavoriteConverter.toFavoriteGuideListDTO(favorites);
     }
 }
