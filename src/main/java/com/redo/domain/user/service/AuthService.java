@@ -145,6 +145,11 @@
             UserProvider userProvider = UserProvider.valueOf(provider);
             return userRepository.findByProviderAndProviderUserId(userProvider, userInfo.socialId())
                     .map(user -> {
+
+                        // 탈퇴한 계정인지 확인
+                        if (user.getStatus() == UserStatus.WITHDRAWN) {
+                            throw new GeneralException(AuthErrorCode.WITHDRAWN_ACCOUNT);
+                        }
                         // 3-1. 기존 회원이면: 토큰 발급
                         String accessToken = jwtUtil.generateAccessToken(user.getId());
                         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
