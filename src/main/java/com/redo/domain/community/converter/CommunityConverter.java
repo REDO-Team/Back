@@ -13,6 +13,10 @@ import com.redo.domain.community.dto.res.CommunityLikeResponseDTO;
 import com.redo.domain.community.dto.res.CommunityPageResponseDTO;
 import com.redo.domain.community.dto.res.CommunityResponseDTO;
 import com.redo.domain.community.dto.res.CommunityUpdateResponseDTO;
+import com.redo.domain.community.dto.res.MyCommunityCommentPageResponseDTO;
+import com.redo.domain.community.dto.res.MyCommunityCommentResponseDTO;
+import com.redo.domain.community.dto.res.MyCommunityPageResponseDTO;
+import com.redo.domain.community.dto.res.MyCommunityResponseDTO;
 import com.redo.domain.community.entity.Community;
 import com.redo.domain.community.entity.CommunityComment;
 import com.redo.domain.community.entity.CommunityImg;
@@ -100,6 +104,60 @@ public class CommunityConverter {
 
     public static CommunityPageResponseDTO toCommunityPageResponse(Page<CommunityResponseDTO> page) {
         return new CommunityPageResponseDTO(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.hasNext()
+        );
+    }
+
+    public static MyCommunityResponseDTO toMyCommunityResponse(
+            Community community,
+            long numComments,
+            String imageUrl
+    ) {
+        return new MyCommunityResponseDTO(
+                community.getId(),
+                community.getTitle(),
+                toPreview(community.getContent()),
+                String.valueOf(community.getCategory().getCode()),
+                imageUrl,
+                numComments,
+                community.getLikeCount() == null ? 0 : community.getLikeCount(),
+                community.getCreatedAt()
+        );
+    }
+
+    public static MyCommunityPageResponseDTO toMyCommunityPageResponse(Page<MyCommunityResponseDTO> page) {
+        return new MyCommunityPageResponseDTO(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.hasNext()
+        );
+    }
+
+    public static MyCommunityCommentResponseDTO toMyCommunityCommentResponse(
+            CommunityComment comment,
+            String communityImageUrl
+    ) {
+        Community community = comment.getCommunity();
+
+        return new MyCommunityCommentResponseDTO(
+                comment.getId(),
+                comment.getContent(),
+                comment.getCreatedAt(),
+                community.getId(),
+                community.getTitle(),
+                String.valueOf(community.getCategory().getCode()),
+                communityImageUrl
+        );
+    }
+
+    public static MyCommunityCommentPageResponseDTO toMyCommunityCommentPageResponse(
+            Page<MyCommunityCommentResponseDTO> page
+    ) {
+        return new MyCommunityCommentPageResponseDTO(
                 page.getContent(),
                 page.getNumber(),
                 page.getSize(),

@@ -20,6 +20,9 @@ public interface CommunityRepository extends JpaRepository<Community, Long> {
 
     Optional<Community> findByIdAndDeletedAtIsNull(Long id);
 
+    // 내가 작성한 게시글 목록 조회용
+    Page<Community> findByUserIdAndDeletedAtIsNull(Long userId, Pageable pageable);
+
     // 목록 조회용: 게시글별 작성자 프로필(닉네임/프로필 이미지 키/캐릭터 코드)을 단건 쿼리 반복 없이 한 번에 조회한다.
     // 프로필이 없는 사용자도 게시글은 조회되어야 하므로 UserProfile 은 LEFT JOIN 한다.
     @Query("""

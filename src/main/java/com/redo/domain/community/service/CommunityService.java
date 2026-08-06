@@ -16,6 +16,8 @@ import com.redo.domain.community.dto.res.CommunityImageResponseDTO;
 import com.redo.domain.community.dto.res.CommunityLikeResponseDTO;
 import com.redo.domain.community.dto.res.CommunityResponseDTO;
 import com.redo.domain.community.dto.res.CommunityUpdateResponseDTO;
+import com.redo.domain.community.dto.res.MyCommunityCommentResponseDTO;
+import com.redo.domain.community.dto.res.MyCommunityResponseDTO;
 import com.redo.domain.community.entity.Community;
 import com.redo.domain.community.entity.CommunityComment;
 import com.redo.domain.community.entity.CommunityImg;
@@ -97,6 +99,38 @@ public class CommunityService {
                     writer == null ? null : writer.getCharacterCode()
             );
         });
+    }
+
+    // 내가 작성한 게시글 목록 조회 로직
+    // 작성자가 조회자 본인으로 고정이라 작성자 프로필 조회는 생략하고, 댓글 수/대표 이미지만 IN 조회로 한 번에 가져온다.
+    public Page<MyCommunityResponseDTO> getMyCommunityPosts(Long userId, Pageable pageable) {
+        Page<Community> communities = communityRepository.findByUserIdAndDeletedAtIsNull(userId, pageable);
+
+        Map<Long, Long> commentCounts = getCommentCounts(communities.getContent());
+        Map<Long, String> representativeImageKeys = getRepresentativeImageKeys(communities.getContent());
+
+        return communities.map(community -> CommunityConverter.toMyCommunityResponse(
+                community,
+                commentCounts.getOrDefault(community.getId(), 0L),
+                createImageUrl(representativeImageKeys.get(community.getId()))
+        ));
+    }
+
+    // 내가 작성한 댓글 목록 조회 로직
+    // 원본 게시글로 이동할 수 있도록 댓글이 달린 게시글 정보를 함께 담는다(삭제된 게시글의 댓글은 쿼리에서 제외된다).
+    public Page<MyCommunityCommentResponseDTO> getMyCommunityComments(Long userId, Pageable pageable) {
+        Page<CommunityComment> comments = communityCommentRepository.findMyComments(userId, pageable);
+
+        List<Community> communities = comments.getContent().stream()
+                .map(CommunityComment::getCommunity)
+                .distinct()
+                .toList();
+        Map<Long, String> representativeImageKeys = getRepresentativeImageKeys(communities);
+
+        return comments.map(comment -> CommunityConverter.toMyCommunityCommentResponse(
+                comment,
+                createImageUrl(representativeImageKeys.get(comment.getCommunity().getId()))
+        ));
     }
 
     // 게시글 상세 조회 로직

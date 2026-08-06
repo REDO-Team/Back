@@ -42,6 +42,14 @@ public enum CommunitySuccessCode implements BaseSuccessCode {
             "COMMUNITY_200_008",
             "댓글 수정에 성공했습니다."),
 
+    GET_MY_COMMUNITY_POSTS_SUCCESS(HttpStatus.OK,
+            "COMMUNITY_200_009",
+            "내가 작성한 게시글 목록 조회에 성공했습니다."),
+
+    GET_MY_COMMUNITY_COMMENTS_SUCCESS(HttpStatus.OK,
+            "COMMUNITY_200_010",
+            "내가 작성한 댓글 목록 조회에 성공했습니다."),
+
     CREATE_COMMUNITY_POST_SUCCESS(HttpStatus.CREATED,
             "COMMUNITY_201_001",
             "커뮤니티 게시글 등록에 성공했습니다."),
