@@ -15,6 +15,8 @@ import com.redo.domain.community.dto.res.CommunityDetailResponseDTO;
 import com.redo.domain.community.dto.res.CommunityLikeResponseDTO;
 import com.redo.domain.community.dto.res.CommunityPageResponseDTO;
 import com.redo.domain.community.dto.res.CommunityUpdateResponseDTO;
+import com.redo.domain.community.dto.res.MyCommunityCommentPageResponseDTO;
+import com.redo.domain.community.dto.res.MyCommunityPageResponseDTO;
 import com.redo.domain.community.exception.CommunityException;
 import com.redo.domain.community.exception.code.CommunityErrorCode;
 import com.redo.domain.community.exception.code.CommunitySuccessCode;
@@ -62,19 +64,45 @@ public class CommunityController {
     ) {
         validatePageRequest(page, size);
 
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by(
-                        Sort.Order.desc("createdAt"),
-                        Sort.Order.desc("id")
-                )
-        );
-
         return ApiResponse.onSuccess(
                 CommunitySuccessCode.GET_COMMUNITY_POSTS_SUCCESS,
                 CommunityConverter.toCommunityPageResponse(
-                        communityService.getCommunityPosts(category, pageable)
+                        communityService.getCommunityPosts(category, createdAtDescPageable(page, size))
+                )
+        );
+    }
+
+    // 내가 작성한 커뮤니티 게시글 목록 조회 API
+    // "/me" 는 리터럴 경로라 "/{communityId}" 보다 우선 매칭된다.
+    @GetMapping("/me")
+    public ApiResponse<MyCommunityPageResponseDTO> getMyCommunityPosts(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        validatePageRequest(page, size);
+
+        return ApiResponse.onSuccess(
+                CommunitySuccessCode.GET_MY_COMMUNITY_POSTS_SUCCESS,
+                CommunityConverter.toMyCommunityPageResponse(
+                        communityService.getMyCommunityPosts(userId, createdAtDescPageable(page, size))
+                )
+        );
+    }
+
+    // 내가 작성한 커뮤니티 댓글 목록 조회 API
+    @GetMapping("/me/comments")
+    public ApiResponse<MyCommunityCommentPageResponseDTO> getMyCommunityComments(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        validatePageRequest(page, size);
+
+        return ApiResponse.onSuccess(
+                CommunitySuccessCode.GET_MY_COMMUNITY_COMMENTS_SUCCESS,
+                CommunityConverter.toMyCommunityCommentPageResponse(
+                        communityService.getMyCommunityComments(userId, createdAtDescPageable(page, size))
                 )
         );
     }
@@ -212,6 +240,18 @@ public class CommunityController {
         return ApiResponse.onSuccess(
                 CommunitySuccessCode.DELETE_COMMUNITY_POST_SUCCESS,
                 communityService.deleteCommunityPost(userId, communityId)
+        );
+    }
+
+    // 목록 조회 공통: 최신순(작성 시각 → id) 정렬 페이지 요청을 만드는 로직
+    private Pageable createdAtDescPageable(int page, int size) {
+        return PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        Sort.Order.desc("createdAt"),
+                        Sort.Order.desc("id")
+                )
         );
     }
 
