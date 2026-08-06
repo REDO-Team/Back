@@ -39,6 +39,17 @@ public class RecycleGuideController {
         return ApiResponse.onSuccess(GeneralSuccessCode.OK, result);
     }
 
+    @Operation(summary = "즐겨찾기 추가한 배출 가이드 조회",
+               description = "현재 로그인한 사용자가 즐겨찾기에 추가한 배출 가이드 목록을 반환합니다.")
+    @GetMapping("/api/guides/favorites")
+    public ApiResponse<RecycleGuideFavoriteResponseDTO.FavoriteGuideListDTO> getFavoriteGuides(
+            @AuthenticationPrincipal Long userId) {
+
+        RecycleGuideFavoriteResponseDTO.FavoriteGuideListDTO result =
+                recycleGuideFavoriteService.getFavoriteGuides(userId);
+        return ApiResponse.onSuccess(GeneralSuccessCode.OK, result);
+    }
+
     @Operation(summary = "가이드 즐겨찾기 추가", description = "특정 배출 가이드를 사용자의 즐겨찾기에 추가합니다.")
     @PostMapping("/api/guides/{guideId}/favorites")
     @ResponseStatus(HttpStatus.CREATED)
