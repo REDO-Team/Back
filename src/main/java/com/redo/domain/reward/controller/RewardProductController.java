@@ -2,6 +2,7 @@ package com.redo.domain.reward.controller;
 
 import com.redo.domain.reward.dto.res.RewardProductDetailResponseDTO;
 import com.redo.domain.reward.dto.res.RewardProductPageResponseDTO;
+import com.redo.domain.reward.dto.res.RewardProductPreviewResponseDTO;
 import com.redo.domain.reward.enums.RewardProductType;
 import com.redo.domain.reward.exception.RewardException;
 import com.redo.domain.reward.exception.code.RewardErrorCode;
@@ -12,6 +13,7 @@ import com.redo.global.util.CursorRequestValidator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,6 +58,20 @@ public class RewardProductController {
         return ApiResponse.onSuccess(
                 RewardSuccessCode.GET_REWARD_PRODUCT_SUCCESS,
                 rewardProductService.getRewardProduct(rewardProductId)
+        );
+    }
+
+    @GetMapping("/preview")
+    @Operation(
+            summary = "홈 리워드 상품 미리보기 조회",
+            description = "판매 가능한 전체 상품 중 사용자별로 하루 동안 유지되는 상품을 최대 2개 조회합니다."
+    )
+    public ApiResponse<RewardProductPreviewResponseDTO> getRewardProductPreview(
+            @AuthenticationPrincipal Long userId
+    ) {
+        return ApiResponse.onSuccess(
+                RewardSuccessCode.GET_REWARD_PRODUCT_PREVIEW_SUCCESS,
+                rewardProductService.getRewardProductPreview(userId)
         );
     }
 }

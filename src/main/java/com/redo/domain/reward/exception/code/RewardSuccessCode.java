@@ -24,7 +24,11 @@ public enum RewardSuccessCode implements BaseSuccessCode {
 
     GET_REWARD_REDEMPTIONS_SUCCESS(HttpStatus.OK,
             "REWARD_200_004",
-            "리워드 상품 구매 내역 조회에 성공했습니다.");
+            "리워드 상품 구매 내역 조회에 성공했습니다."),
+
+    GET_REWARD_PRODUCT_PREVIEW_SUCCESS(HttpStatus.OK,
+            "REWARD_200_005",
+            "홈 리워드 상품 미리보기 조회에 성공했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

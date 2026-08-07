@@ -56,4 +56,47 @@ public interface RewardProductRepository extends JpaRepository<RewardProduct, Lo
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select rp from RewardProduct rp where rp.id = :rewardProductId")
     Optional<RewardProduct> findByIdForUpdate(@Param("rewardProductId") Long rewardProductId);
+
+    @Query("""
+            select rp
+            from RewardProduct rp
+            where rp.status = :status
+              and rp.stockQuantity > :stockQuantity
+            order by function('RAND', :seed)
+            """)
+    List<RewardProduct> findRandomAvailableProducts(
+            @Param("status") RewardProductStatus status,
+            @Param("stockQuantity") Integer stockQuantity,
+            @Param("seed") long seed,
+            Pageable pageable
+    );
+
+    @Query("""
+            select rp
+            from RewardProduct rp
+            where rp.status = :status
+              and rp.stockQuantity > :stockQuantity
+              and rp.id not in :excludedIds
+            order by function('RAND', :seed)
+            """)
+    List<RewardProduct> findRandomAvailableProductsExcludingIds(
+            @Param("status") RewardProductStatus status,
+            @Param("stockQuantity") Integer stockQuantity,
+            @Param("excludedIds") List<Long> excludedIds,
+            @Param("seed") long seed,
+            Pageable pageable
+    );
+
+    @Query("""
+            select rp
+            from RewardProduct rp
+            where rp.id in :rewardProductIds
+              and rp.status = :status
+              and rp.stockQuantity > :stockQuantity
+            """)
+    List<RewardProduct> findAvailableProductsByIdIn(
+            @Param("rewardProductIds") List<Long> rewardProductIds,
+            @Param("status") RewardProductStatus status,
+            @Param("stockQuantity") Integer stockQuantity
+    );
 }
