@@ -29,7 +29,7 @@ public class RewardProductController {
     @GetMapping
     @Operation(
             summary = "리워드 상품 목록 조회",
-            description = "판매 가능한 리워드 상품을 커서 기반으로 유형별 조회합니다."
+            description = "판매 가능한 리워드 상품을 필요한 포인트가 낮은 순으로 커서 기반 유형별 조회합니다."
     )
     public ApiResponse<RewardProductPageResponseDTO> getRewardProducts(
             @RequestParam(required = false) RewardProductType rewardProductType,

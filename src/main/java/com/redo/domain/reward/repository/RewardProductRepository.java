@@ -21,8 +21,23 @@ public interface RewardProductRepository extends JpaRepository<RewardProduct, Lo
             where rp.status = :status
               and rp.stockQuantity > :stockQuantity
               and (:rewardProductType is null or rp.rewardProductType = :rewardProductType)
-              and (:cursor is null or rp.id < :cursor)
-            order by rp.id desc
+              and (
+                  :cursor is null
+                  or rp.pricePoint > (
+                      select cursorProduct.pricePoint
+                      from RewardProduct cursorProduct
+                      where cursorProduct.id = :cursor
+                  )
+                  or (
+                      rp.pricePoint = (
+                          select cursorProduct.pricePoint
+                          from RewardProduct cursorProduct
+                          where cursorProduct.id = :cursor
+                      )
+                      and rp.id > :cursor
+                  )
+              )
+            order by rp.pricePoint asc, rp.id asc
             """)
     List<RewardProduct> findAvailableProducts(
             @Param("rewardProductType") RewardProductType rewardProductType,
