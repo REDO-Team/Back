@@ -26,6 +26,7 @@ export function resolveAccessToken(baseUrl) {
         name: 'POST /api/auth/login',
         domain: 'auth',
         endpoint: 'login-setup',
+        phase: 'setup',
       },
     }
   );
