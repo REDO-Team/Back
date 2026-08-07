@@ -2,6 +2,7 @@ package com.redo.domain.reward.converter;
 
 import com.redo.domain.reward.dto.res.RewardProductDetailResponseDTO;
 import com.redo.domain.reward.dto.res.RewardProductPageResponseDTO;
+import com.redo.domain.reward.dto.res.RewardProductPreviewResponseDTO;
 import com.redo.domain.reward.dto.res.RewardProductResponseDTO;
 import com.redo.domain.reward.entity.RewardProduct;
 
@@ -55,5 +56,11 @@ public class RewardProductConverter {
                 nextCursor,
                 hasNext
         );
+    }
+
+    public static RewardProductPreviewResponseDTO toRewardProductPreviewResponse(
+            List<RewardProductResponseDTO> items
+    ) {
+        return new RewardProductPreviewResponseDTO(items);
     }
 }
