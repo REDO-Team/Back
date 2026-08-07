@@ -17,8 +17,11 @@ export function buildThresholds(overrides = {}) {
 
   return {
     checks: [`rate>${1 - maxErrorRate}`],
-    http_req_failed: [`rate<${maxErrorRate}`],
-    http_req_duration: [`p(95)<${maxP95}`, `p(99)<${maxP99}`],
+    'http_req_failed{phase:measurement}': [`rate<${maxErrorRate}`],
+    'http_req_duration{phase:measurement}': [
+      `p(95)<${maxP95}`,
+      `p(99)<${maxP99}`,
+    ],
     ...overrides,
   };
 }

@@ -44,6 +44,7 @@ export function apiRequest(
       name: `${normalizedMethod} ${endpointName}`,
       domain,
       endpoint: endpointName,
+      phase: 'measurement',
       ...tags,
     },
   };

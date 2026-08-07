@@ -20,6 +20,11 @@ public interface ContributionEventRepository extends JpaRepository<ContributionE
             from ContributionEvent ce
             join ce.user u
             where u.status = :userStatus
+              and ce.id = (
+                  select max(latestCe.id)
+                  from ContributionEvent latestCe
+                  where latestCe.user = ce.user
+              )
               and (:cursor is null or ce.id < :cursor)
             order by ce.id desc
             """)
