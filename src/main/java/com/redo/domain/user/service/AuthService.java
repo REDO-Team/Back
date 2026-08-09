@@ -303,6 +303,12 @@
                 throw new GeneralException(AuthErrorCode.DUPLICATE_LOGIN_ID);
             }
 
+            userRepository.findByEmail(request.email())
+                    .filter(user -> user.getStatus() != UserStatus.WITHDRAWN)
+                    .ifPresent(user -> {
+                        throw new GeneralException(AuthErrorCode.DUPLICATE_EMAIL);
+                    });
+
             // 2) 이메일 인증 완료 확인
             userEmailVerificationRepository
                     .findTopByEmailAndVerifiedAtIsNotNullOrderByCreatedAtDesc(request.email())

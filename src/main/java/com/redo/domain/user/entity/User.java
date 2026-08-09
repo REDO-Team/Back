@@ -73,6 +73,7 @@ public class User {
     public void withdraw() {
         this.status = UserStatus.WITHDRAWN;
         this.withdrawnAt = LocalDateTime.now();
+        this.email = "withdrawn_" + this.id + "_" + this.email;
     }
 
     // 포인트 적립 메서드
