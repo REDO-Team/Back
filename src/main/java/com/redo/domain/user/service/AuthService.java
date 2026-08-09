@@ -198,7 +198,9 @@
             }
 
             // 1) 이미 가입된 이메일인지 확인
-            userRepository.findByEmail(email).ifPresent(user -> {
+            userRepository.findByEmail(email)
+                    .filter(user -> user.getStatus() != UserStatus.WITHDRAWN)
+                    .ifPresent(user -> {
                 throw new GeneralException(AuthErrorCode.DUPLICATE_EMAIL);
             });
 
