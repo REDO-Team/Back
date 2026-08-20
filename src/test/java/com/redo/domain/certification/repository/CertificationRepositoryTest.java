@@ -38,10 +38,12 @@ class CertificationRepositoryTest {
                         999L,
                         CertificationStatus.PROCESSING
                 )).isEmpty();
-        assertThat(certificationRepository
-                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
-                        999L,
-                        CertificationStatus.PASSED
-                )).isEmpty();
+        // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+        // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+        // assertThat(certificationRepository
+        //         .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+        //                 999L,
+        //                 CertificationStatus.PASSED
+        //         )).isEmpty();
     }
 }

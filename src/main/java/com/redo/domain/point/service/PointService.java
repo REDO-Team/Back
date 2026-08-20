@@ -21,10 +21,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -32,8 +30,10 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class PointService {
 
-    private static final int DAILY_EARN_LIMIT = 3;
-    private static final ZoneId SEOUL_ZONE_ID = ZoneId.of("Asia/Seoul");
+    // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+    // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+    // private static final int DAILY_EARN_LIMIT = 3;
+    // private static final ZoneId SEOUL_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final PointTransactionRepository pointTransactionRepository;
     private final CertificationRepository certificationRepository;
@@ -109,7 +109,9 @@ public class PointService {
         validateCertificationSource(certification, certificationSource);
         int amount = certification.getRewardPoint();
 
-        validateDailyEarnLimit(user);
+        // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+        // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+        // validateDailyEarnLimit(user);
         validatePointLimit(user, amount);
 
         PointTransaction transaction = PointTransaction.builder()
@@ -124,23 +126,25 @@ public class PointService {
         user.addPoint(amount);
     }
 
-    private void validateDailyEarnLimit(User user) {
-        LocalDate today = LocalDate.now(SEOUL_ZONE_ID);
-        LocalDateTime startAt = today.atStartOfDay();
-        LocalDateTime endAt = today.plusDays(1).atStartOfDay();
-
-        long dailyEarnCount = pointTransactionRepository
-                .countByUserAndTransactionTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
-                        user,
-                        PointTransactionType.EARN,
-                        startAt,
-                        endAt
-                );
-
-        if (dailyEarnCount >= DAILY_EARN_LIMIT) {
-            throw new PointException(PointErrorCode.DAILY_EARN_LIMIT_EXCEEDED);
-        }
-    }
+    // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+    // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+    // private void validateDailyEarnLimit(User user) {
+    //     LocalDate today = LocalDate.now(SEOUL_ZONE_ID);
+    //     LocalDateTime startAt = today.atStartOfDay();
+    //     LocalDateTime endAt = today.plusDays(1).atStartOfDay();
+    //
+    //     long dailyEarnCount = pointTransactionRepository
+    //             .countByUserAndTransactionTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+    //                     user,
+    //                     PointTransactionType.EARN,
+    //                     startAt,
+    //                     endAt
+    //             );
+    //
+    //     if (dailyEarnCount >= DAILY_EARN_LIMIT) {
+    //         throw new PointException(PointErrorCode.DAILY_EARN_LIMIT_EXCEEDED);
+    //     }
+    // }
 
     private void validatePointLimit(User user, Integer amount) {
         if (user.getTotalPoints() > Integer.MAX_VALUE - amount) {

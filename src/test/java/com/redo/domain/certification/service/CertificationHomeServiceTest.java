@@ -11,8 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -44,12 +42,12 @@ class CertificationHomeServiceTest {
 
         CertificationHomeResponseDTO response = certificationHomeService.getHome(USER_ID);
 
-        assertThat(response.dailyLimit()).isEqualTo(3);
+        assertThat(response.dailyLimit()).isEqualTo(100);
         assertThat(response.usedCount()).isEqualTo(1);
-        assertThat(response.remainingCount()).isEqualTo(2);
+        assertThat(response.remainingCount()).isEqualTo(99);
         assertThat(response.canCertify()).isTrue();
         assertThat(response.restriction().type()).isEqualTo(CertificationRestrictionType.NONE);
-        assertThat(response.policy().cooldownSeconds()).isEqualTo(300);
+        assertThat(response.policy().cooldownSeconds()).isZero();
         assertThat(response.policy().sameGuideDailyLimit()).isEqualTo(1);
         assertThat(response.policy().liveCaptureOnly()).isTrue();
         assertThat(response.rewardPolicy().generalCertificationPoint())
@@ -60,24 +58,11 @@ class CertificationHomeServiceTest {
                 .isEqualTo(100);
     }
 
-    @Test
-    void mapsCooldownRecoveryFields() {
-        LocalDateTime retryAvailableAt = LocalDateTime.of(2026, 7, 25, 10, 5);
-        when(policyEvaluator.evaluate(USER_ID)).thenReturn(new CertificationPolicyResult(
-                1,
-                CertificationRestrictionType.COOLDOWN,
-                retryAvailableAt,
-                121,
-                null,
-                null
-        ));
-
-        CertificationHomeResponseDTO response = certificationHomeService.getHome(USER_ID);
-
-        assertThat(response.canCertify()).isFalse();
-        assertThat(response.restriction().retryAvailableAt()).isEqualTo(retryAvailableAt);
-        assertThat(response.restriction().remainingSeconds()).isEqualTo(121);
-    }
+    /*
+     * 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+     * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+     * 기존 mapsCooldownRecoveryFields 테스트를 주석으로 보존한다.
+     */
 
     @Test
     void mapsProcessingRecoveryFields() {
@@ -93,6 +78,8 @@ class CertificationHomeServiceTest {
         CertificationHomeResponseDTO response = certificationHomeService.getHome(USER_ID);
 
         assertThat(response.canCertify()).isFalse();
+        assertThat(response.dailyLimit()).isEqualTo(100);
+        assertThat(response.remainingCount()).isEqualTo(99);
         assertThat(response.restriction().type())
                 .isEqualTo(CertificationRestrictionType.PROCESSING_EXISTS);
         assertThat(response.restriction().processingCertificationId()).isEqualTo(77L);
@@ -101,10 +88,10 @@ class CertificationHomeServiceTest {
     }
 
     @Test
-    void remainingCountNeverBecomesNegative() {
+    void dailyPassedCountDoesNotDisableHomeCertification() {
         when(policyEvaluator.evaluate(USER_ID)).thenReturn(new CertificationPolicyResult(
                 4,
-                CertificationRestrictionType.DAILY_LIMIT_EXCEEDED,
+                CertificationRestrictionType.NONE,
                 null,
                 0,
                 null,
@@ -113,7 +100,27 @@ class CertificationHomeServiceTest {
 
         CertificationHomeResponseDTO response = certificationHomeService.getHome(USER_ID);
 
-        assertThat(response.remainingCount()).isZero();
-        assertThat(response.canCertify()).isFalse();
+        assertThat(response.usedCount()).isEqualTo(4);
+        assertThat(response.dailyLimit()).isEqualTo(100);
+        assertThat(response.remainingCount()).isEqualTo(96);
+        assertThat(response.canCertify()).isTrue();
+    }
+
+    @Test
+    void compatibilityRemainingCountStaysPositiveAtDisplayLimit() {
+        when(policyEvaluator.evaluate(USER_ID)).thenReturn(new CertificationPolicyResult(
+                101,
+                CertificationRestrictionType.NONE,
+                null,
+                0,
+                null,
+                null
+        ));
+
+        CertificationHomeResponseDTO response = certificationHomeService.getHome(USER_ID);
+
+        assertThat(response.dailyLimit()).isEqualTo(100);
+        assertThat(response.remainingCount()).isOne();
+        assertThat(response.canCertify()).isTrue();
     }
 }

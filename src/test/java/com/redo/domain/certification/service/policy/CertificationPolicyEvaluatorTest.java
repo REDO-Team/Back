@@ -50,11 +50,6 @@ class CertificationPolicyEvaluatorTest {
     void returnsNoneWhenThereIsNoHistory() {
         stubUsedCount(0);
         stubNoProcessing();
-        when(certificationRepository
-                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
-                        USER_ID,
-                        CertificationStatus.PASSED
-                )).thenReturn(Optional.empty());
 
         CertificationPolicyResult result = evaluator.evaluate(USER_ID);
 
@@ -63,14 +58,15 @@ class CertificationPolicyEvaluatorTest {
     }
 
     @Test
-    void dailyLimitHasHighestPriority() {
-        stubUsedCount(3);
+    void dailyPassedCountDoesNotBlockCertification() {
+        stubUsedCount(4);
+        stubNoProcessing();
 
         CertificationPolicyResult result = evaluator.evaluate(USER_ID);
 
-        assertThat(result.type())
-                .isEqualTo(CertificationRestrictionType.DAILY_LIMIT_EXCEEDED);
-        verify(certificationRepository, never())
+        assertThat(result.type()).isEqualTo(CertificationRestrictionType.NONE);
+        assertThat(result.usedCount()).isEqualTo(4);
+        verify(certificationRepository)
                 .findTopByUserIdAndStatusOrderByCreatedAtDesc(
                         USER_ID,
                         CertificationStatus.PROCESSING
@@ -78,7 +74,7 @@ class CertificationPolicyEvaluatorTest {
     }
 
     @Test
-    void processingHasPriorityOverCooldownAndProvidesRecoveryPath() {
+    void processingProvidesRecoveryPath() {
         stubUsedCount(1);
         Certification processing = mock(Certification.class);
         when(processing.getId()).thenReturn(101L);
@@ -93,13 +89,13 @@ class CertificationPolicyEvaluatorTest {
                 .isEqualTo(CertificationRestrictionType.PROCESSING_EXISTS);
         assertThat(result.processingCertificationId()).isEqualTo(101L);
         assertThat(result.statusPath()).isEqualTo("/api/certification/101/status");
-        verify(certificationRepository, never())
-                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
-                        USER_ID,
-                        CertificationStatus.PASSED
-                );
     }
 
+    /*
+     * 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+     * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+     * 기존 쿨다운 정책 테스트를 원형 보존한다.
+     *
     @Test
     void failedHistoryDoesNotCreateCooldown() {
         stubUsedCount(0);
@@ -177,6 +173,7 @@ class CertificationPolicyEvaluatorTest {
         assertThat(result.type()).isEqualTo(CertificationRestrictionType.NONE);
         assertThat(result.retryAvailableAt()).isNull();
     }
+    */
 
     @Test
     void calculatesTodayUsingSeoulDateBoundary() {
@@ -188,11 +185,6 @@ class CertificationPolicyEvaluatorTest {
         );
         stubUsedCount(0);
         stubNoProcessing();
-        when(certificationRepository
-                .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
-                        USER_ID,
-                        CertificationStatus.PASSED
-                )).thenReturn(Optional.empty());
 
         evaluator.evaluate(USER_ID);
 

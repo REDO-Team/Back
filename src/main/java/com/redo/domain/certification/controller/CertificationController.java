@@ -42,20 +42,20 @@ public class CertificationController {
             description = """
                     오늘 성공 횟수, 신규 인증 제한 상태와 인증 방식별 리워드 정책을 조회합니다.
 
-                    일일 인증 횟수는 `Asia/Seoul` 기준 오늘 `PASSED`된 인증만 집계하며,
-                    최대 3회까지 포인트 적립이 가능합니다. 제한 상태도 홈 화면을 정상 조회한
-                    결과이므로 모두 HTTP 200, `isSuccess=true`로 반환됩니다.
+                    데모데이 정책에서는 일일 성공 횟수 제한과 성공 후 5분 대기를 적용하지
+                    않습니다. `usedCount`는 `Asia/Seoul` 기준 오늘 `PASSED` 건수를 정보로만
+                    제공합니다. 기존 프론트의 숫자 타입과 차단 분기를 그대로 호환하기 위해
+                    `dailyLimit=100`, `remainingCount>=1`을 반환하지만 실제 일일 한도로
+                    사용하지 않습니다. `policy.cooldownSeconds=0`이며 진행 중 인증만 신규
+                    요청을 차단합니다. 응답 필드 구조는 데모데이 변경 전과 동일합니다.
 
-                    | code | restriction.type | 설명 |
-                    | --- | --- | --- |
-                    | `CERTIFICATION200_0` | `NONE` | 현재 새로운 인증을 시작할 수 있습니다. |
-                    | `CERTIFICATION200_1` | `DAILY_LIMIT_EXCEEDED` | 오늘 `PASSED` 인증이 3회 이상이어서 새로운 인증을 시작할 수 없습니다. |
-                    | `CERTIFICATION200_8` | `COOLDOWN` | 최근 성공 인증(`PASSED`) 후 5분이 지나지 않았습니다. `retryAvailableAt`, `remainingSeconds`로 재시도 가능 시점을 확인합니다. |
-                    | `CERTIFICATION200_9` | `PROCESSING_EXISTS` | 진행 중인 인증이 있어 새로운 인증을 시작할 수 없습니다. `processingCertificationId`, `statusPath`로 기존 인증 상태를 조회합니다. |
+                    | HTTP | isSuccess | code | restriction.type | 발생 조건 | 주요 필드 | 프론트 동작 |
+                    | --- | --- | --- | --- | --- | --- | --- |
+                    | 200 | true | `CERTIFICATION200_0` | `NONE` | 진행 중 인증 없음 | `canCertify=true`, 숫자형 `dailyLimit`/`remainingCount`, `cooldownSeconds=0` | 촬영 시작 |
+                    | 200 | true | `CERTIFICATION200_9` | `PROCESSING_EXISTS` | 진행 중 인증 존재 | `canCertify=false`, `processingCertificationId`, `statusPath` | 기존 인증 상태 조회 |
 
-                    제한 상태의 적용 우선순위는 `DAILY_LIMIT_EXCEEDED` → `PROCESSING_EXISTS`
-                    → `COOLDOWN` → `NONE`입니다. `FAILED`는 신규 인증 쿨다운을 생성하거나
-                    연장하지 않으며, 실패 인증 재촬영도 5분 제한 대상이 아닙니다.
+                    `retryAvailableAt`은 항상 `null`, `remainingSeconds`는 항상 `0`입니다.
+                    `DAILY_LIMIT_EXCEEDED`, `COOLDOWN`과 관련 200/429 코드는 반환하지 않습니다.
 
                     리워드 지급 후보 포인트는 쓰레기 종류와 무관하게 일반 인증(`GENERAL`) 50P,
                     검색 후 인증(`AFTER_SEARCH`) 100P입니다.
@@ -91,10 +91,9 @@ public class CertificationController {
                     - `GENERAL`: `image`, `certificationSource=GENERAL`을 보내고 `recycleGuideId`는 생략합니다.
                     - `AFTER_SEARCH`: `image`, `certificationSource=AFTER_SEARCH`, DB에 존재하는 `recycleGuideId`를 보냅니다.
                     - 실시간 촬영 여부는 프론트가 보장하며 서버는 빈 파일, 최대 크기와 이미지 형식을 검증합니다.
-                    - 신규 생성 제한 우선순위는 일일 PASSED 3회 → 기존 PROCESSING → 최근 PASSED 후 5분입니다.
-                    - 제한 시간과 일일 경계는 `Asia/Seoul` 기준입니다.
-                    - FAILED는 신규 인증 쿨다운을 생성하거나 연장하지 않습니다.
-                    - 실패 인증 재촬영은 이 API가 아니며 5분 제한에서 제외됩니다.
+                    - 일일 PASSED 횟수와 최근 PASSED 후 경과 시간은 신규 생성을 차단하지 않습니다.
+                    - 사용자의 기존 PROCESSING 인증은 계속 신규 생성을 차단합니다.
+                    - 오늘 PASSED된 동일 guide는 기존과 같이 `DUPLICATE_GUIDE_TODAY`로 완료됩니다.
 
                     최종 성공 응답에는 `pollingIntervalSeconds`, `statusPath`, `resultPath`가
                     포함되지 않습니다. PASSED에서만 `earnedPoint`가 50P(GENERAL) 또는
@@ -112,13 +111,10 @@ public class CertificationController {
                     | 400 | `S3_400_002` | 없음(code로 분기) | 확장자/Content-Type이 지원되지 않음 | 문자열 `errorDetail` | 지원 형식으로 다시 촬영 |
                     | 400 | `CERTIFICATION400_1` | `INVALID_SOURCE_GUIDE_CONTRACT` | source가 잘못되었거나 source별 guide 조건 위반 | `type` | 요청 필드 수정 |
                     | 400 | `POINT_400_004` | code로 분기 | 적립 후 사용자 총 포인트가 정수 한도를 초과함 | 문자열 `errorDetail` | 포인트 적립 실패 안내 및 문의 유도 |
-                    | 400 | `POINT_400_007` | code로 분기 | 인증/포인트 일일 집계 불일치로 Point 도메인의 3회 제한에 걸림 | 문자열 `errorDetail` | 당일 추가 인증 차단 |
                     | 404 | `CERTIFICATION404_1` | `RECYCLE_GUIDE_NOT_FOUND` 또는 `GENERAL_CLASSIFICATION_NOT_MAPPED` | guide가 없거나 GENERAL 분류를 DB guide로 매핑하지 못함 | `type`, 선택 요청이면 `recycleGuideId` | 가이드 재선택/분류 실패 안내 |
                     | 409 | `CERTIFICATION409_0` | `PROCESSING_EXISTS` | 기존 PROCESSING 인증 존재 | `certificationId`, `statusPath` | 중복 POST 금지 및 기존 건 복구 안내 |
                     | 412 | `CERTIFICATION412_0` | `ACTIVE_TEMPLATE_NOT_FOUND` | 결정된 guide의 active template 없음 | `recycleGuideId` | 생성 중단 안내 |
                     | 413 | `S3_413_001` | 없음(code로 분기) | 공통 S3 최대 크기 초과 | 문자열 `errorDetail` | 작은 이미지로 다시 촬영 |
-                    | 429 | `CERTIFICATION429_0` | `DAILY_LIMIT_EXCEEDED` | 오늘 PASSED 3회 이상 | `dailyLimit`, `usedCount` | 당일 신규 인증 차단 |
-                    | 429 | `CERTIFICATION429_1` | `COOLDOWN` | 최근 PASSED 후 5분 미경과 | `retryAvailableAt`, `remainingSeconds` | 카운트다운 후 재시도 |
                     | 500 | `S3_500_001` | 없음(code로 분기) | S3 업로드 실패 | 문자열 `errorDetail` | 잠시 후 재시도 |
                     | 500 | `CERTIFICATION500_0` | `IMAGE_READ_FAILED` | 판정용 S3 이미지 조회 실패 | `type` | 시스템 오류 안내 |
                     | 500 | `GEMINI_500_001` | code로 분기 | Gemini 응답 JSON이 비어 있거나 계약 위반 | 문자열 `errorDetail` | 시스템 오류 안내 |
@@ -165,8 +161,9 @@ public class CertificationController {
                     - JWT 인증이 필요하며 본인 소유 인증만 재촬영할 수 있습니다.
                     - multipart 필드는 실시간 재촬영한 `image` 하나입니다. source, guide와 reward point는 다시 받지 않습니다.
                     - `FAILED/VLM_JUDGEMENT_FAILED`만 재촬영할 수 있습니다.
-                    - 실패 인증 재촬영은 신규 인증에 적용되는 최근 PASSED 후 5분 제한을 적용하지 않습니다.
-                    - 오늘 `PASSED` 3회 제한과 다른 `PROCESSING` 인증 존재 여부는 다시 검사합니다.
+                    - 일일 PASSED 횟수와 최근 PASSED 후 경과 시간은 재촬영을 차단하지 않습니다.
+                    - 사용자의 다른 `PROCESSING` 인증 존재 여부는 계속 검사합니다.
+                    - PASS 완료 직전 오늘 PASSED된 동일 guide 정책은 계속 검사합니다.
                     - GENERAL도 최초 판정에서 확정된 DB guide를 유지하며 품목 분류를 반복하지 않습니다.
                     - 기존 source와 reward point snapshot을 유지하고 접수된 재촬영마다 `attemptCount`가 증가합니다.
 
@@ -186,7 +183,6 @@ public class CertificationController {
                     | 400 | `S3_400_001` | code로 분기 | 이미지가 비어 있음 | 문자열 `errorDetail` | 다시 촬영 |
                     | 400 | `S3_400_002` | code로 분기 | 이미지 형식이 지원되지 않음 | 문자열 `errorDetail` | 지원 형식 안내 |
                     | 400 | `POINT_400_004` | code로 분기 | 적립 후 사용자 총 포인트 정수 한도 초과 | 문자열 `errorDetail` | 적립 실패 안내/문의 |
-                    | 400 | `POINT_400_007` | code로 분기 | 인증/포인트 일일 집계 불일치 | 문자열 `errorDetail` | 당일 추가 인증 차단 |
                     | 404 | `CERTIFICATION404_0` | `CERTIFICATION_NOT_FOUND` | 인증 없음 또는 소유권 불일치 | `type` | 이전 화면으로 이동 |
                     | 409 | `CERTIFICATION409_0` | `PROCESSING_EXISTS` | 사용자의 다른 인증이 진행 중 | `certificationId`, `statusPath` | 중복 요청 금지 |
                     | 409 | `CERTIFICATION409_2` | `PASSED_NOT_RETRYABLE` | 이미 PASSED인 인증 | `type` | 성공 결과 안내 |
@@ -194,7 +190,6 @@ public class CertificationController {
                     | 409 | `CERTIFICATION409_4` | `RETRY_NOT_ALLOWED` | VLM 실패가 아닌 FAILED 인증 | `type` | 다른 품목 인증 안내 |
                     | 412 | `CERTIFICATION412_0` | `ACTIVE_TEMPLATE_NOT_FOUND` | 기존 guide의 active template 없음 | `recycleGuideId` | 기능 준비 상태 안내 |
                     | 413 | `S3_413_001` | code로 분기 | 공통 S3 최대 크기 초과 | 문자열 `errorDetail` | 작은 이미지로 재촬영 |
-                    | 429 | `CERTIFICATION429_0` | `DAILY_LIMIT_EXCEEDED` | 오늘 PASSED 3회 이상 | `dailyLimit`, `usedCount` | 당일 재촬영 차단 |
                     | 500 | `S3_500_001` | code로 분기 | S3 업로드 실패 | 문자열 `errorDetail` | 잠시 후 재시도 |
                     | 500 | `CERTIFICATION500_0` | `IMAGE_READ_FAILED` | 재촬영 이미지 조회 실패 | `type` | 시스템 오류 안내 |
                     | 500 | `GEMINI_500_001` | code로 분기 | Gemini JSON 응답 계약 위반 | 문자열 `errorDetail` | 시스템 오류 안내 |

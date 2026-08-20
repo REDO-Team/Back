@@ -22,8 +22,6 @@ import com.redo.global.security.JwtAuthenticationFilter;
 import com.redo.global.security.JwtUtil;
 import com.redo.global.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -96,12 +94,14 @@ class CertificationControllerTest {
                 .andExpect(jsonPath("$.isSuccess").value(true))
                 .andExpect(jsonPath("$.code").value("CERTIFICATION200_0"))
                 .andExpect(jsonPath("$.message").value("인증하기 화면 조회에 성공했습니다."))
-                .andExpect(jsonPath("$.result.dailyLimit").value(3))
-                .andExpect(jsonPath("$.result.remainingCount").value(3))
+                .andExpect(jsonPath("$.result.dailyLimit").value(100))
+                .andExpect(jsonPath("$.result.remainingCount").value(100))
+                .andExpect(jsonPath("$.result.dailyLimitEnabled").doesNotExist())
                 .andExpect(jsonPath("$.result.usedCount").value(0))
                 .andExpect(jsonPath("$.result.canCertify").value(true))
                 .andExpect(jsonPath("$.result.restriction.type").value("NONE"))
-                .andExpect(jsonPath("$.result.policy.cooldownSeconds").value(300))
+                .andExpect(jsonPath("$.result.policy.cooldownSeconds").value(0))
+                .andExpect(jsonPath("$.result.policy.cooldownEnabled").doesNotExist())
                 .andExpect(jsonPath("$.result.rewardPolicy.generalCertificationPoint").value(50))
                 .andExpect(jsonPath("$.result.rewardPolicy.afterSearchCertificationPoint").value(100))
                 .andExpect(jsonPath("$.result.monthlyCertificationCount").doesNotExist());
@@ -109,42 +109,31 @@ class CertificationControllerTest {
         verify(certificationHomeService).getHome(USER_ID);
     }
 
-    @ParameterizedTest
-    @CsvSource({
-            "DAILY_LIMIT_EXCEEDED,CERTIFICATION200_1",
-            "COOLDOWN,CERTIFICATION200_8",
-            "PROCESSING_EXISTS,CERTIFICATION200_9"
-    })
-    void mapsRestrictionToSuccessCode(
-            CertificationRestrictionType restrictionType,
-            String expectedCode
-    ) throws Exception {
+    @Test
+    void mapsProcessingRestrictionToSuccessCode() throws Exception {
         stubAuthentication();
         when(certificationHomeService.getHome(USER_ID))
-                .thenReturn(homeResponse(restrictionType));
+                .thenReturn(homeResponse(CertificationRestrictionType.PROCESSING_EXISTS));
 
         mockMvc.perform(get("/api/certification")
                         .header("Authorization", "Bearer " + ACCESS_TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isSuccess").value(true))
-                .andExpect(jsonPath("$.code").value(expectedCode))
+                .andExpect(jsonPath("$.code").value("CERTIFICATION200_9"))
+                .andExpect(jsonPath("$.result.dailyLimit").value(100))
+                .andExpect(jsonPath("$.result.remainingCount").value(100))
+                .andExpect(jsonPath("$.result.dailyLimitEnabled").doesNotExist())
+                .andExpect(jsonPath("$.result.policy.cooldownEnabled").doesNotExist())
                 .andExpect(jsonPath("$.result.restriction.type")
-                        .value(restrictionType.name()));
+                        .value("PROCESSING_EXISTS"));
     }
 
-    @Test
-    void cooldownHomeMessageRefersToSuccessfulCertification() throws Exception {
-        stubAuthentication();
-        when(certificationHomeService.getHome(USER_ID))
-                .thenReturn(homeResponse(CertificationRestrictionType.COOLDOWN));
-
-        mockMvc.perform(get("/api/certification")
-                        .header("Authorization", "Bearer " + ACCESS_TOKEN))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value("CERTIFICATION200_8"))
-                .andExpect(jsonPath("$.message")
-                        .value("이전 성공 인증 후 5분이 지나야 다시 인증할 수 있습니다."));
-    }
+    /*
+     * 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+     * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+     * 기존 mapsRestrictionToSuccessCode의 DAILY_LIMIT_EXCEEDED/COOLDOWN cases와
+     * cooldownHomeMessageRefersToSuccessfulCertification 테스트를 주석으로 보존한다.
+     */
 
     @Test
     void rejectsUnauthenticatedRequest() throws Exception {
@@ -430,8 +419,8 @@ class CertificationControllerTest {
             CertificationRestrictionType restrictionType
     ) {
         return new CertificationHomeResponseDTO(
-                3,
-                3,
+                100,
+                100,
                 0,
                 restrictionType == CertificationRestrictionType.NONE,
                 new CertificationHomeResponseDTO.RestrictionDTO(
@@ -441,7 +430,7 @@ class CertificationControllerTest {
                         null,
                         null
                 ),
-                new CertificationHomeResponseDTO.PolicyDTO(300, 1, true),
+                new CertificationHomeResponseDTO.PolicyDTO(0, 1, true),
                 new CertificationHomeResponseDTO.RewardPolicyDTO(50, 100)
         );
     }

@@ -46,14 +46,11 @@ import static com.redo.domain.certification.config.CertificationTimeConfig.CERTI
 import static com.redo.domain.certification.config.CertificationTimeConfig.SEOUL_ZONE;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.ACTIVE_TEMPLATE_NOT_FOUND;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.CERTIFICATION_NOT_FOUND;
-import static com.redo.domain.certification.exception.code.CertificationErrorCode.COOLDOWN;
-import static com.redo.domain.certification.exception.code.CertificationErrorCode.DAILY_LIMIT_EXCEEDED;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.PASSED_NOT_RETRYABLE;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.PROCESSING_EXISTS;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.RECYCLE_GUIDE_NOT_FOUND;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.RETRY_NOT_ALLOWED;
 import static com.redo.domain.certification.exception.code.CertificationErrorCode.RETRY_PROCESSING;
-import static com.redo.domain.certification.service.policy.CertificationPolicyEvaluator.DAILY_LIMIT;
 
 @Service
 public class CertificationTransactionService {
@@ -434,10 +431,6 @@ public class CertificationTransactionService {
         }
 
         throw switch (policy.type()) {
-            case DAILY_LIMIT_EXCEEDED -> new CertificationException(
-                    DAILY_LIMIT_EXCEEDED,
-                    CertificationErrorDetail.dailyLimit(DAILY_LIMIT, policy.usedCount())
-            );
             case PROCESSING_EXISTS -> new CertificationException(
                     PROCESSING_EXISTS,
                     CertificationErrorDetail.processing(
@@ -445,24 +438,33 @@ public class CertificationTransactionService {
                             policy.statusPath()
                     )
             );
-            case COOLDOWN -> new CertificationException(
-                    COOLDOWN,
-                    CertificationErrorDetail.cooldown(
-                            policy.retryAvailableAt(),
-                            policy.remainingSeconds()
-                    )
-            );
             case NONE -> throw new IllegalStateException(
                     "NONE restriction must not create an exception"
             );
+            // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+            // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+            // case DAILY_LIMIT_EXCEEDED -> new CertificationException(
+            //         DAILY_LIMIT_EXCEEDED,
+            //         CertificationErrorDetail.dailyLimit(DAILY_LIMIT, policy.usedCount())
+            // );
+            // case COOLDOWN -> new CertificationException(
+            //         COOLDOWN,
+            //         CertificationErrorDetail.cooldown(
+            //                 policy.retryAvailableAt(),
+            //                 policy.remainingSeconds()
+            //         )
+            // );
         };
     }
 
     private void enforceRetryPolicy(CertificationPolicyResult policy) {
-        if (policy.type() == CertificationRestrictionType.DAILY_LIMIT_EXCEEDED
-                || policy.type() == CertificationRestrictionType.PROCESSING_EXISTS) {
-            enforcePolicy(policy);
-        }
+        // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+        // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+        // if (policy.type() == CertificationRestrictionType.DAILY_LIMIT_EXCEEDED
+        //         || policy.type() == CertificationRestrictionType.PROCESSING_EXISTS) {
+        //     enforcePolicy(policy);
+        // }
+        enforcePolicy(policy);
     }
 
     private CertificationCreateResponseDTO enforceRetryPassPolicy(
@@ -472,19 +474,21 @@ public class CertificationTransactionService {
         LocalDate today = judgedAt.toLocalDate();
         LocalDateTime startAt = today.atStartOfDay();
         LocalDateTime endAt = today.plusDays(1).atStartOfDay();
-        long usedCount = certificationRepository
-                .countByUserIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
-                        certification.getUser().getId(),
-                        CertificationStatus.PASSED,
-                        startAt,
-                        endAt
-                );
-        if (usedCount >= DAILY_LIMIT) {
-            throw new CertificationException(
-                    DAILY_LIMIT_EXCEEDED,
-                    CertificationErrorDetail.dailyLimit(DAILY_LIMIT, usedCount)
-            );
-        }
+        // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+        // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+        // long usedCount = certificationRepository
+        //         .countByUserIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
+        //                 certification.getUser().getId(),
+        //                 CertificationStatus.PASSED,
+        //                 startAt,
+        //                 endAt
+        //         );
+        // if (usedCount >= DAILY_LIMIT) {
+        //     throw new CertificationException(
+        //             DAILY_LIMIT_EXCEEDED,
+        //             CertificationErrorDetail.dailyLimit(DAILY_LIMIT, usedCount)
+        //     );
+        // }
 
         RecycleGuide recycleGuide = requireCertificationGuide(certification);
         boolean duplicate = certificationRepository
