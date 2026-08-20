@@ -50,16 +50,18 @@ public enum CertificationErrorCode implements BaseErrorCode {
             "CERTIFICATION412_0",
             "선택한 배출 가이드의 활성 판정 템플릿이 없습니다."
     ),
-    DAILY_LIMIT_EXCEEDED(
-            HttpStatus.TOO_MANY_REQUESTS,
-            "CERTIFICATION429_0",
-            "오늘 포인트 적립 가능 횟수를 모두 사용했습니다."
-    ),
-    COOLDOWN(
-            HttpStatus.TOO_MANY_REQUESTS,
-            "CERTIFICATION429_1",
-            "이전 성공 인증 후 5분이 지나야 새로운 인증을 시작할 수 있습니다."
-    ),
+    // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+    // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+    // DAILY_LIMIT_EXCEEDED(
+    //         HttpStatus.TOO_MANY_REQUESTS,
+    //         "CERTIFICATION429_0",
+    //         "오늘 포인트 적립 가능 횟수를 모두 사용했습니다."
+    // ),
+    // COOLDOWN(
+    //         HttpStatus.TOO_MANY_REQUESTS,
+    //         "CERTIFICATION429_1",
+    //         "이전 성공 인증 후 5분이 지나야 새로운 인증을 시작할 수 있습니다."
+    // ),
     IMAGE_READ_FAILED(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "CERTIFICATION500_0",

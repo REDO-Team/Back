@@ -15,12 +15,14 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
 
     boolean existsByIdempotencyKey(String idempotencyKey);
 
-    long countByUserAndTransactionTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
-            User user,
-            PointTransactionType transactionType,
-            LocalDateTime startAt,
-            LocalDateTime endAt
-    );
+    // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+    // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+    // long countByUserAndTransactionTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+    //         User user,
+    //         PointTransactionType transactionType,
+    //         LocalDateTime startAt,
+    //         LocalDateTime endAt
+    // );
 
     // 이번 달 적립 합계 쿼리
     @Query("""

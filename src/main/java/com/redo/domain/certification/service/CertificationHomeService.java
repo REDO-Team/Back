@@ -9,8 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import static com.redo.domain.certification.service.policy.CertificationPolicyEvaluator.COOLDOWN_SECONDS;
-import static com.redo.domain.certification.service.policy.CertificationPolicyEvaluator.DAILY_LIMIT;
 import static com.redo.domain.certification.service.policy.CertificationPolicyEvaluator.LIVE_CAPTURE_ONLY;
 import static com.redo.domain.certification.service.policy.CertificationPolicyEvaluator.SAME_GUIDE_DAILY_LIMIT;
 
@@ -19,21 +17,26 @@ import static com.redo.domain.certification.service.policy.CertificationPolicyEv
 @Transactional(readOnly = true)
 public class CertificationHomeService {
 
+    private static final int FRONTEND_COMPATIBLE_DAILY_LIMIT = 100;
+
     private final CertificationPolicyEvaluator certificationPolicyEvaluator;
 
     public CertificationHomeResponseDTO getHome(Long userId) {
         CertificationPolicyResult policy = certificationPolicyEvaluator.evaluate(userId);
-        int remainingCount = (int) Math.max(0L, DAILY_LIMIT - policy.usedCount());
+        // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+        // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+        // int remainingCount = (int) Math.max(0L, DAILY_LIMIT - policy.usedCount());
+        int remainingCount = frontendCompatibleRemainingCount(policy.usedCount());
         CertificationHomeResponseDTO.RestrictionDTO restriction = toRestriction(policy);
 
         return new CertificationHomeResponseDTO(
-                DAILY_LIMIT,
+                FRONTEND_COMPATIBLE_DAILY_LIMIT,
                 remainingCount,
                 policy.usedCount(),
                 restriction.type() == CertificationRestrictionType.NONE,
                 restriction,
                 new CertificationHomeResponseDTO.PolicyDTO(
-                        COOLDOWN_SECONDS,
+                        0,
                         SAME_GUIDE_DAILY_LIMIT,
                         LIVE_CAPTURE_ONLY
                 ),
@@ -42,6 +45,12 @@ public class CertificationHomeService {
                         CertificationSource.AFTER_SEARCH.rewardPoint()
                 )
         );
+    }
+
+    private int frontendCompatibleRemainingCount(long usedCount) {
+        long nonNegativeUsedCount = Math.max(0L, usedCount);
+        long remainingCount = (long) FRONTEND_COMPATIBLE_DAILY_LIMIT - nonNegativeUsedCount;
+        return (int) Math.max(1L, remainingCount);
     }
 
     private CertificationHomeResponseDTO.RestrictionDTO toRestriction(

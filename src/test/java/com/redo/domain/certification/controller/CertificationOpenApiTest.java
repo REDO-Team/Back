@@ -23,23 +23,60 @@ class CertificationOpenApiTest {
     private MockMvc mockMvc;
 
     @Test
-    void documentsPassedOnlyCooldownPolicy() throws Exception {
+    void documentsDemoDayUnlimitedPolicy() throws Exception {
         mockMvc.perform(get("/v3/api-docs/03-certification"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].get.description"
                 ).value(org.hamcrest.Matchers.containsString(
-                        "최근 성공 인증(`PASSED`) 후 5분"
+                        "일일 성공 횟수 제한과 성공 후 5분 대기를 적용하지"
                 )))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].get.description"
                 ).value(org.hamcrest.Matchers.containsString(
-                        "`FAILED`는 신규 인증 쿨다운을 생성하거나"
+                        "`dailyLimit=100`, `remainingCount>=1`"
                 )))
+                .andExpect(jsonPath(
+                        "$.components.schemas.CertificationHomeResponseDTO" +
+                                ".properties.dailyLimit.type"
+                ).value("integer"))
+                .andExpect(jsonPath(
+                        "$.components.schemas.CertificationHomeResponseDTO" +
+                                ".properties.remainingCount.type"
+                ).value("integer"))
+                .andExpect(jsonPath(
+                        "$.components.schemas.CertificationHomeResponseDTO.required"
+                ).value(org.hamcrest.Matchers.hasItems(
+                        "dailyLimit",
+                        "remainingCount",
+                        "policy"
+                )))
+                .andExpect(jsonPath(
+                        "$.components.schemas.PolicyDTO.required"
+                ).value(org.hamcrest.Matchers.hasItem("cooldownSeconds")))
+                .andExpect(jsonPath(
+                        "$.components.schemas.CertificationHomeResponseDTO" +
+                                ".properties.dailyLimitEnabled"
+                ).doesNotExist())
+                .andExpect(jsonPath(
+                        "$.components.schemas.PolicyDTO.properties.cooldownEnabled"
+                ).doesNotExist())
+                .andExpect(jsonPath(
+                        "$.components.schemas.RestrictionDTO" +
+                                ".properties.retryAvailableAt.type"
+                ).value(org.hamcrest.Matchers.containsInAnyOrder("string", "null")))
+                .andExpect(jsonPath(
+                        "$.components.schemas.RestrictionDTO" +
+                                ".properties.processingCertificationId.type"
+                ).value(org.hamcrest.Matchers.containsInAnyOrder("integer", "null")))
+                .andExpect(jsonPath(
+                        "$.components.schemas.RestrictionDTO" +
+                                ".properties.statusPath.type"
+                ).value(org.hamcrest.Matchers.containsInAnyOrder("string", "null")))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].get.description"
                 ).value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(
-                        "직전 완료 인증(`PASSED` 또는 `FAILED`)"
+                        "CERTIFICATION429_0"
                 ))));
     }
 
@@ -68,12 +105,14 @@ class CertificationOpenApiTest {
                 ).value(org.hamcrest.Matchers.containsString("PROCESSING_EXISTS")))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].post.description"
-                ).value(org.hamcrest.Matchers.containsString("최근 PASSED 후 5분")))
+                ).value(org.hamcrest.Matchers.containsString(
+                        "일일 PASSED 횟수와 최근 PASSED 후 경과 시간은 신규 생성을 차단하지"
+                )))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].post.description"
-                ).value(org.hamcrest.Matchers.containsString(
-                        "FAILED는 신규 인증 쿨다운을 생성하거나 연장하지 않습니다"
-                )))
+                ).value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(
+                        "POINT_400_007"
+                ))))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].post.description"
                 ).value(org.hamcrest.Matchers.containsString("S3_413_001")))
@@ -104,7 +143,9 @@ class CertificationOpenApiTest {
                 ).value(org.hamcrest.Matchers.containsString("CERTIFICATION200_11")))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification/{certificationId}/retry'].post.description"
-                ).value(org.hamcrest.Matchers.containsString("5분 제한을 적용하지 않습니다")))
+                ).value(org.hamcrest.Matchers.containsString(
+                        "일일 PASSED 횟수와 최근 PASSED 후 경과 시간은 재촬영을 차단하지"
+                )))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification/{certificationId}/retry'].post.description"
                 ).value(org.hamcrest.Matchers.containsString("평균 30초")))

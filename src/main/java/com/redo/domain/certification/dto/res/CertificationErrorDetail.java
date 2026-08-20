@@ -3,32 +3,38 @@ package com.redo.domain.certification.dto.res;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.redo.domain.certification.enums.CertificationRestrictionType;
 
-import java.time.LocalDateTime;
-
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record CertificationErrorDetail(
         String type,
-        Integer dailyLimit,
-        Long usedCount,
-        LocalDateTime retryAvailableAt,
-        Long remainingSeconds,
         Long certificationId,
         String statusPath,
         Long recycleGuideId
 ) {
 
+    // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+    // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+    // 기존 record 필드:
+    // Integer dailyLimit,
+    // Long usedCount,
+    // LocalDateTime retryAvailableAt,
+    // Long remainingSeconds,
+
     public static CertificationErrorDetail type(String type) {
         return new CertificationErrorDetail(
-                type, null, null, null, null, null, null, null
+                type, null, null, null
         );
     }
 
     public static CertificationErrorDetail guide(String type, Long recycleGuideId) {
         return new CertificationErrorDetail(
-                type, null, null, null, null, null, null, recycleGuideId
+                type, null, null, recycleGuideId
         );
     }
 
+    /*
+     * 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+     * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+     *
     public static CertificationErrorDetail dailyLimit(
             int dailyLimit,
             long usedCount
@@ -60,6 +66,7 @@ public record CertificationErrorDetail(
                 null
         );
     }
+    */
 
     public static CertificationErrorDetail processing(
             Long certificationId,
@@ -67,10 +74,6 @@ public record CertificationErrorDetail(
     ) {
         return new CertificationErrorDetail(
                 CertificationRestrictionType.PROCESSING_EXISTS.name(),
-                null,
-                null,
-                null,
-                null,
                 certificationId,
                 statusPath,
                 null

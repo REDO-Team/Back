@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -19,8 +18,10 @@ import static com.redo.domain.certification.config.CertificationTimeConfig.SEOUL
 @Component
 public class CertificationPolicyEvaluator {
 
-    public static final int DAILY_LIMIT = 3;
-    public static final long COOLDOWN_SECONDS = 300;
+    // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+    // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+    // public static final int DAILY_LIMIT = 3;
+    // public static final long COOLDOWN_SECONDS = 300;
     public static final int SAME_GUIDE_DAILY_LIMIT = 1;
     public static final boolean LIVE_CAPTURE_ONLY = true;
 
@@ -48,9 +49,11 @@ public class CertificationPolicyEvaluator {
                         startAt,
                         endAt
                 );
-        if (usedCount >= DAILY_LIMIT) {
-            return empty(usedCount, CertificationRestrictionType.DAILY_LIMIT_EXCEEDED);
-        }
+        // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+        // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+        // if (usedCount >= DAILY_LIMIT) {
+        //     return empty(usedCount, CertificationRestrictionType.DAILY_LIMIT_EXCEEDED);
+        // }
 
         Optional<Certification> processingCertification =
                 certificationRepository.findTopByUserIdAndStatusOrderByCreatedAtDesc(
@@ -69,30 +72,31 @@ public class CertificationPolicyEvaluator {
             );
         }
 
-        Optional<Certification> recentPassed =
-                certificationRepository
-                        .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
-                                userId,
-                                CertificationStatus.PASSED
-                        );
-        if (recentPassed.isEmpty()) {
-            return empty(usedCount, CertificationRestrictionType.NONE);
-        }
+        // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+        // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+        // Optional<Certification> recentPassed = certificationRepository
+        //         .findTopByUserIdAndStatusAndJudgedAtIsNotNullOrderByJudgedAtDesc(
+        //                 userId,
+        //                 CertificationStatus.PASSED
+        //         );
+        // if (recentPassed.isEmpty()) {
+        //     return empty(usedCount, CertificationRestrictionType.NONE);
+        // }
+        // LocalDateTime retryAvailableAt =
+        //         recentPassed.get().getJudgedAt().plusSeconds(COOLDOWN_SECONDS);
+        // if (!now.isBefore(retryAvailableAt)) {
+        //     return empty(usedCount, CertificationRestrictionType.NONE);
+        // }
+        // return new CertificationPolicyResult(
+        //         usedCount,
+        //         CertificationRestrictionType.COOLDOWN,
+        //         retryAvailableAt,
+        //         ceilPositiveSeconds(Duration.between(now, retryAvailableAt)),
+        //         null,
+        //         null
+        // );
 
-        LocalDateTime retryAvailableAt =
-                recentPassed.get().getJudgedAt().plusSeconds(COOLDOWN_SECONDS);
-        if (!now.isBefore(retryAvailableAt)) {
-            return empty(usedCount, CertificationRestrictionType.NONE);
-        }
-
-        return new CertificationPolicyResult(
-                usedCount,
-                CertificationRestrictionType.COOLDOWN,
-                retryAvailableAt,
-                ceilPositiveSeconds(Duration.between(now, retryAvailableAt)),
-                null,
-                null
-        );
+        return empty(usedCount, CertificationRestrictionType.NONE);
     }
 
     private CertificationPolicyResult empty(
@@ -109,8 +113,10 @@ public class CertificationPolicyEvaluator {
         );
     }
 
-    private long ceilPositiveSeconds(Duration duration) {
-        long seconds = duration.getSeconds();
-        return duration.getNano() == 0 ? seconds : seconds + 1;
-    }
+    // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+    // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+    // private long ceilPositiveSeconds(Duration duration) {
+    //     long seconds = duration.getSeconds();
+    //     return duration.getNano() == 0 ? seconds : seconds + 1;
+    // }
 }

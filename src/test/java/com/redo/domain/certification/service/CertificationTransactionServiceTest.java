@@ -134,6 +134,11 @@ class CertificationTransactionServiceTest {
         assertThat(certificationCaptor.getValue().getRewardPoint()).isEqualTo(100);
     }
 
+    /*
+     * 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+     * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+     * 기존 쿨다운 차단 테스트를 원형 보존한다.
+     *
     @Test
     void blocksNewCertificationDuringRecentPassedCooldown() {
         when(userRepository.findByIdForUpdate(USER_ID)).thenReturn(Optional.of(user));
@@ -158,6 +163,7 @@ class CertificationTransactionServiceTest {
 
         verify(certificationRepository, never()).saveAndFlush(any());
     }
+    */
 
     @Test
     void completesDuplicateGuideWithoutAiJudgement() {
@@ -320,9 +326,9 @@ class CertificationTransactionServiceTest {
                 List.of(),
                 "{\"result\":\"PASS\"}"
         );
-        PointException pointFailure = new PointException(
-                PointErrorCode.DAILY_EARN_LIMIT_EXCEEDED
-        );
+        // 데모데이 시현으로 비활성화된 DAILY_EARN_LIMIT_EXCEEDED 대신
+        // 유지되는 포인트 상한 오류로 완료 트랜잭션 전파를 검증한다.
+        PointException pointFailure = new PointException(PointErrorCode.POINT_LIMIT_EXCEEDED);
         doThrow(pointFailure).when(pointService).earnPoint(
                 USER_ID,
                 105L,

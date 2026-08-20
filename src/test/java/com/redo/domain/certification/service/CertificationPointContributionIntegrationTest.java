@@ -186,6 +186,48 @@ class CertificationPointContributionIntegrationTest {
                 .isEqualTo(100);
     }
 
+    @Test
+    void fourthDailyPassStillCommitsCertificationPointAndContribution() {
+        for (int index = 1; index <= 3; index++) {
+            Certification previous = Certification.create(
+                    user,
+                    guide,
+                    "certifications/integration/previous-" + index + ".jpg",
+                    CertificationSource.AFTER_SEARCH
+            );
+            previous.complete(
+                    AiJudgementResult.PASS,
+                    LocalDateTime.now().minusMinutes(10 + index)
+            );
+            previous = certificationRepository.saveAndFlush(previous);
+            pointTransactionRepository.saveAndFlush(PointTransaction.builder()
+                    .user(user)
+                    .certification(previous)
+                    .transactionType(PointTransactionType.EARN)
+                    .amount(100)
+                    .idempotencyKey("certification:" + previous.getId() + ":earn")
+                    .build());
+        }
+        user.addPoint(300);
+        userRepository.saveAndFlush(user);
+
+        Certification fourth = saveProcessingCertification(IMAGE_KEY);
+        entityManager.clear();
+
+        CertificationCreateResponseDTO response = transactionService.completeJudgement(
+                createContext(fourth, CertificationJudgementMode.CREATE_AFTER_SEARCH),
+                passResult()
+        );
+
+        entityManager.clear();
+        assertThat(response.status()).isEqualTo(CertificationStatus.PASSED);
+        assertThat(pointTransactionRepository.count()).isEqualTo(4);
+        assertThat(userRepository.findById(user.getId()).orElseThrow().getTotalPoints())
+                .isEqualTo(400);
+        assertThat(contributionEventRepository.findByCertificationId(fourth.getId()))
+                .isPresent();
+    }
+
     private Certification saveProcessingCertification(String imageKey) {
         return certificationRepository.saveAndFlush(Certification.create(
                 user,

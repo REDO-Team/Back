@@ -17,16 +17,18 @@ public enum CertificationSuccessCode implements BaseSuccessCode {
             "CERTIFICATION200_0",
             "인증하기 화면 조회에 성공했습니다."
     ),
-    GET_HOME_DAILY_LIMIT_EXCEEDED(
-            HttpStatus.OK,
-            "CERTIFICATION200_1",
-            "오늘 포인트 적립 가능 횟수를 모두 사용했습니다."
-    ),
-    GET_HOME_COOLDOWN(
-            HttpStatus.OK,
-            "CERTIFICATION200_8",
-            "이전 성공 인증 후 5분이 지나야 다시 인증할 수 있습니다."
-    ),
+    // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+    // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+    // GET_HOME_DAILY_LIMIT_EXCEEDED(
+    //         HttpStatus.OK,
+    //         "CERTIFICATION200_1",
+    //         "오늘 포인트 적립 가능 횟수를 모두 사용했습니다."
+    // ),
+    // GET_HOME_COOLDOWN(
+    //         HttpStatus.OK,
+    //         "CERTIFICATION200_8",
+    //         "이전 성공 인증 후 5분이 지나야 다시 인증할 수 있습니다."
+    // ),
     GET_HOME_PROCESSING_EXISTS(
             HttpStatus.OK,
             "CERTIFICATION200_9",
@@ -60,9 +62,11 @@ public enum CertificationSuccessCode implements BaseSuccessCode {
     public static CertificationSuccessCode from(CertificationRestrictionType restrictionType) {
         return switch (restrictionType) {
             case NONE -> GET_HOME_SUCCESS;
-            case DAILY_LIMIT_EXCEEDED -> GET_HOME_DAILY_LIMIT_EXCEEDED;
-            case COOLDOWN -> GET_HOME_COOLDOWN;
             case PROCESSING_EXISTS -> GET_HOME_PROCESSING_EXISTS;
+            // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+            // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+            // case DAILY_LIMIT_EXCEEDED -> GET_HOME_DAILY_LIMIT_EXCEEDED;
+            // case COOLDOWN -> GET_HOME_COOLDOWN;
         };
     }
 

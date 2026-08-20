@@ -112,7 +112,7 @@ class CertificationRetryTransactionServiceTest {
     }
 
     @Test
-    void startsRetryWithoutApplyingCooldownAndRestoresPreviousFailure() {
+    void startsRetryWithoutDailyOrCooldownRestrictionAndRestoresPreviousFailure() {
         Certification certification = retryableCertification();
         when(userRepository.findByIdForUpdate(USER_ID)).thenReturn(Optional.of(user));
         when(certificationRepository.findByIdAndUserIdForUpdate(
@@ -120,7 +120,7 @@ class CertificationRetryTransactionServiceTest {
                 USER_ID
         )).thenReturn(Optional.of(certification));
         when(policyEvaluator.evaluate(USER_ID)).thenReturn(policy(
-                CertificationRestrictionType.COOLDOWN,
+                CertificationRestrictionType.NONE,
                 null
         ));
         when(templateProvider.findActiveByRecycleGuideId(GUIDE_ID))
@@ -186,6 +186,11 @@ class CertificationRetryTransactionServiceTest {
                 .isEqualTo(CertificationErrorCode.PASSED_NOT_RETRYABLE);
     }
 
+    /*
+     * 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+     * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+     * 기존 일일 한도 재촬영 차단 테스트를 원형 보존한다.
+     *
     @Test
     void blocksRetryWhenDailyPassedLimitWasReached() {
         Certification certification = retryableCertification();
@@ -211,6 +216,7 @@ class CertificationRetryTransactionServiceTest {
         assertThat(certification.getStatus()).isEqualTo(CertificationStatus.FAILED);
         assertThat(certification.getAttemptCount()).isEqualTo(1);
     }
+    */
 
     @Test
     void savesRetryPassJudgementAndEarnsOriginalSourcePoint() {
@@ -220,10 +226,6 @@ class CertificationRetryTransactionServiceTest {
                 CERTIFICATION_ID,
                 USER_ID
         )).thenReturn(Optional.of(certification));
-        when(certificationRepository
-                .countByUserIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
-                        any(), any(), any(), any()
-                )).thenReturn(0L);
         when(certificationRepository
                 .existsByUserIdAndRecycleGuideIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
                         any(), any(), any(), any(), any()
@@ -260,10 +262,6 @@ class CertificationRetryTransactionServiceTest {
                 USER_ID
         )).thenReturn(Optional.of(certification));
         when(certificationRepository
-                .countByUserIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
-                        any(), any(), any(), any()
-                )).thenReturn(0L);
-        when(certificationRepository
                 .existsByUserIdAndRecycleGuideIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
                         any(), any(), any(), any(), any()
                 )).thenReturn(true);
@@ -283,7 +281,7 @@ class CertificationRetryTransactionServiceTest {
     }
 
     @Test
-    void rechecksDailyLimitBeforeRetryPassCompletion() {
+    void allowsRetryPassWithoutRecheckingDailyLimit() {
         Certification certification = processingRetryCertification();
         when(userRepository.findByIdForUpdate(USER_ID)).thenReturn(Optional.of(user));
         when(certificationRepository.findByIdAndUserIdForUpdate(
@@ -291,22 +289,27 @@ class CertificationRetryTransactionServiceTest {
                 USER_ID
         )).thenReturn(Optional.of(certification));
         when(certificationRepository
-                .countByUserIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
-                        any(), any(), any(), any()
-                )).thenReturn(3L);
+                .existsByUserIdAndRecycleGuideIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
+                        any(), any(), any(), any(), any()
+                )).thenReturn(false);
 
-        assertThatThrownBy(() -> service.completeJudgement(
+        CertificationCreateResponseDTO response = service.completeJudgement(
                 retryContext(),
                 passResult()
-        ))
-                .isInstanceOf(CertificationException.class)
-                .extracting("errorCode")
-                .isEqualTo(CertificationErrorCode.DAILY_LIMIT_EXCEEDED);
+        );
 
-        assertThat(certification.getStatus()).isEqualTo(CertificationStatus.PROCESSING);
-        verify(aiJudgementRepository, never()).save(any());
-        verify(pointService, never()).earnPoint(any(), any(), any(), any());
-        verify(contributionService, never()).recordPassedCertification(any());
+        assertThat(response.status()).isEqualTo(CertificationStatus.PASSED);
+        assertThat(certification.getStatus()).isEqualTo(CertificationStatus.PASSED);
+        verify(certificationRepository, never())
+                .countByUserIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
+                        any(), any(), any(), any()
+                );
+        verify(pointService).earnPoint(
+                USER_ID,
+                CERTIFICATION_ID,
+                CertificationSource.AFTER_SEARCH,
+                "certification:101:earn"
+        );
     }
 
     private Certification retryableCertification() {
@@ -357,10 +360,8 @@ class CertificationRetryTransactionServiceTest {
         return new CertificationPolicyResult(
                 usedCount == null ? 0 : usedCount,
                 type,
-                type == CertificationRestrictionType.COOLDOWN
-                        ? LocalDateTime.of(2026, 7, 31, 14, 10)
-                        : null,
-                type == CertificationRestrictionType.COOLDOWN ? 120 : 0,
+                null,
+                0,
                 null,
                 null
         );
