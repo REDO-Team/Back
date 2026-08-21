@@ -85,7 +85,7 @@ public record CertificationHomeResponseDTO(
             long cooldownSeconds,
 
             @Schema(
-                    description = "동일 가이드의 일일 PASSED 허용 횟수",
+                    description = "동일 가이드의 데모데이 호환 허용 횟수. 실제 정책 한도가 아님",
                     requiredMode = Schema.RequiredMode.REQUIRED
             )
             int sameGuideDailyLimit,

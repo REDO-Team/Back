@@ -37,6 +37,11 @@ class CertificationOpenApiTest {
                         "`dailyLimit=100`, `remainingCount>=1`"
                 )))
                 .andExpect(jsonPath(
+                        "$.paths['/api/certification'].get.description"
+                ).value(org.hamcrest.Matchers.containsString(
+                        "`policy.sameGuideDailyLimit=100`"
+                )))
+                .andExpect(jsonPath(
                         "$.components.schemas.CertificationHomeResponseDTO" +
                                 ".properties.dailyLimit.type"
                 ).value("integer"))
@@ -110,6 +115,16 @@ class CertificationOpenApiTest {
                 )))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification'].post.description"
+                ).value(org.hamcrest.Matchers.containsString(
+                        "오늘 PASSED된 동일 guide도 추가 인증할 수"
+                )))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification'].post.description"
+                ).value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(
+                        "DUPLICATE_GUIDE_TODAY"
+                ))))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification'].post.description"
                 ).value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(
                         "POINT_400_007"
                 ))))
@@ -146,6 +161,16 @@ class CertificationOpenApiTest {
                 ).value(org.hamcrest.Matchers.containsString(
                         "일일 PASSED 횟수와 최근 PASSED 후 경과 시간은 재촬영을 차단하지"
                 )))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification/{certificationId}/retry'].post.description"
+                ).value(org.hamcrest.Matchers.containsString(
+                        "오늘 PASSED된 동일 guide 여부로 차단하지"
+                )))
+                .andExpect(jsonPath(
+                        "$.paths['/api/certification/{certificationId}/retry'].post.description"
+                ).value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(
+                        "DUPLICATE_GUIDE_TODAY"
+                ))))
                 .andExpect(jsonPath(
                         "$.paths['/api/certification/{certificationId}/retry'].post.description"
                 ).value(org.hamcrest.Matchers.containsString("평균 30초")))

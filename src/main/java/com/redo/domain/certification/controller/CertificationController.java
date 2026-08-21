@@ -47,7 +47,9 @@ public class CertificationController {
                     제공합니다. 기존 프론트의 숫자 타입과 차단 분기를 그대로 호환하기 위해
                     `dailyLimit=100`, `remainingCount>=1`을 반환하지만 실제 일일 한도로
                     사용하지 않습니다. `policy.cooldownSeconds=0`이며 진행 중 인증만 신규
-                    요청을 차단합니다. 응답 필드 구조는 데모데이 변경 전과 동일합니다.
+                    요청을 차단합니다. `policy.sameGuideDailyLimit=100`도 실제 제한이 아닌
+                    호환 표현값이며 동일 guide의 추가 인증을 허용합니다. 응답 필드 구조는
+                    데모데이 변경 전과 동일합니다.
 
                     | HTTP | isSuccess | code | restriction.type | 발생 조건 | 주요 필드 | 프론트 동작 |
                     | --- | --- | --- | --- | --- | --- | --- |
@@ -93,7 +95,7 @@ public class CertificationController {
                     - 실시간 촬영 여부는 프론트가 보장하며 서버는 빈 파일, 최대 크기와 이미지 형식을 검증합니다.
                     - 일일 PASSED 횟수와 최근 PASSED 후 경과 시간은 신규 생성을 차단하지 않습니다.
                     - 사용자의 기존 PROCESSING 인증은 계속 신규 생성을 차단합니다.
-                    - 오늘 PASSED된 동일 guide는 기존과 같이 `DUPLICATE_GUIDE_TODAY`로 완료됩니다.
+                    - 오늘 PASSED된 동일 guide도 추가 인증할 수 있으며 정상 VLM 판정을 수행합니다.
 
                     최종 성공 응답에는 `pollingIntervalSeconds`, `statusPath`, `resultPath`가
                     포함되지 않습니다. PASSED에서만 `earnedPoint`가 50P(GENERAL) 또는
@@ -106,7 +108,6 @@ public class CertificationController {
                     | --- | --- | --- | --- | --- | --- |
                     | 201 | `CERTIFICATION201_0` | `PASSED` | VLM 판정 및 포인트 적립 트랜잭션 완료 | `certificationId`, guide/item/category, `earnedPoint`, `judgedAt` | 성공 결과 표시 |
                     | 201 | `CERTIFICATION201_1` | `FAILED / VLM_JUDGEMENT_FAILED` | VLM 판정 실패 | `failedReason`, `retryGuide`, `retryAllowed=true`, `retryPath` | 실패 사유와 재촬영 안내 |
-                    | 201 | `CERTIFICATION201_1` | `FAILED / DUPLICATE_GUIDE_TODAY` | 오늘 PASSED된 동일 guide | `retryAllowed=false` | 다른 품목 안내 |
                     | 400 | `S3_400_001` | 없음(code로 분기) | 이미지가 비어 있음 | 문자열 `errorDetail` | 다시 촬영 |
                     | 400 | `S3_400_002` | 없음(code로 분기) | 확장자/Content-Type이 지원되지 않음 | 문자열 `errorDetail` | 지원 형식으로 다시 촬영 |
                     | 400 | `CERTIFICATION400_1` | `INVALID_SOURCE_GUIDE_CONTRACT` | source가 잘못되었거나 source별 guide 조건 위반 | `type` | 요청 필드 수정 |
@@ -155,7 +156,7 @@ public class CertificationController {
                     - 평균 30초는 안내 기준이며 hard timeout은 기본 210초입니다.
                     - HTTP 200 + `status=PASSED`이면 성공 결과 화면을 표시합니다.
                     - HTTP 200 + `status=FAILED`이면 `failureType`, `failedReason`, `retryGuide`로 실패 결과 화면을 표시합니다.
-                    - VLM의 FAIL과 오늘 동일 guide 거절은 완료된 비즈니스 결과이므로 HTTP 200, `isSuccess=true`입니다.
+                    - VLM의 FAIL은 완료된 비즈니스 결과이므로 HTTP 200, `isSuccess=true`입니다.
 
                     요청 및 정책 제약:
                     - JWT 인증이 필요하며 본인 소유 인증만 재촬영할 수 있습니다.
@@ -163,14 +164,14 @@ public class CertificationController {
                     - `FAILED/VLM_JUDGEMENT_FAILED`만 재촬영할 수 있습니다.
                     - 일일 PASSED 횟수와 최근 PASSED 후 경과 시간은 재촬영을 차단하지 않습니다.
                     - 사용자의 다른 `PROCESSING` 인증 존재 여부는 계속 검사합니다.
-                    - PASS 완료 직전 오늘 PASSED된 동일 guide 정책은 계속 검사합니다.
+                    - PASS 완료 직전에도 오늘 PASSED된 동일 guide 여부로 차단하지 않습니다.
                     - GENERAL도 최초 판정에서 확정된 DB guide를 유지하며 품목 분류를 반복하지 않습니다.
                     - 기존 source와 reward point snapshot을 유지하고 접수된 재촬영마다 `attemptCount`가 증가합니다.
 
                     최종 응답에는 polling 필드가 포함되지 않습니다. PASSED에서만 기존
                     PointService를 호출하며 인증 상태, 새 AiJudgement, point_transactions
                     EARN과 사용자 총 포인트를 하나의 완료 트랜잭션으로 저장합니다.
-                    VLM FAIL과 동일 guide 거절에는 포인트를 적립하지 않습니다.
+                    VLM FAIL에는 포인트를 적립하지 않습니다.
                     응답 DTO는 null 필드를 생략하므로 PASSED의 `failureType`,
                     `failedReason`, `retryPath`와 FAILED의 비해당 필드는 JSON에 없을 수
                     있습니다. `retryGuide`는 항상 배열, `earnedPoint`는 항상 숫자입니다.
@@ -179,7 +180,6 @@ public class CertificationController {
                     | --- | --- | --- | --- | --- | --- |
                     | 200 | `CERTIFICATION200_10` | `PASSED` | 재촬영 VLM PASS와 포인트 적립 완료 | `attemptCount`, guide/item/category, `earnedPoint`, `judgedAt` | 성공 결과 표시 |
                     | 200 | `CERTIFICATION200_11` | `FAILED / VLM_JUDGEMENT_FAILED` | 재촬영 이미지가 다시 VLM FAIL | `failedReason`, `retryGuide`, `retryAllowed=true`, `retryPath` | 실패 사유와 재촬영 안내 |
-                    | 200 | `CERTIFICATION200_11` | `FAILED / DUPLICATE_GUIDE_TODAY` | 오늘 PASSED된 동일 guide | `retryAllowed=false`, `retryPath` 없음 | 다른 품목 안내 |
                     | 400 | `S3_400_001` | code로 분기 | 이미지가 비어 있음 | 문자열 `errorDetail` | 다시 촬영 |
                     | 400 | `S3_400_002` | code로 분기 | 이미지 형식이 지원되지 않음 | 문자열 `errorDetail` | 지원 형식 안내 |
                     | 400 | `POINT_400_004` | code로 분기 | 적립 후 사용자 총 포인트 정수 한도 초과 | 문자열 `errorDetail` | 적립 실패 안내/문의 |

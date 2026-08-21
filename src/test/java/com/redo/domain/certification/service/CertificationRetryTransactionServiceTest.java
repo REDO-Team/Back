@@ -219,18 +219,13 @@ class CertificationRetryTransactionServiceTest {
     */
 
     @Test
-    void savesRetryPassJudgementAndEarnsOriginalSourcePoint() {
+    void savesRetryPassWithoutSameGuideRestrictionAndEarnsOriginalSourcePoint() {
         Certification certification = processingRetryCertification();
         when(userRepository.findByIdForUpdate(USER_ID)).thenReturn(Optional.of(user));
         when(certificationRepository.findByIdAndUserIdForUpdate(
                 CERTIFICATION_ID,
                 USER_ID
         )).thenReturn(Optional.of(certification));
-        when(certificationRepository
-                .existsByUserIdAndRecycleGuideIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
-                        any(), any(), any(), any(), any()
-                )).thenReturn(false);
-
         CertificationCreateResponseDTO response = service.completeJudgement(
                 retryContext(),
                 passResult()
@@ -253,6 +248,11 @@ class CertificationRetryTransactionServiceTest {
                 .recordPassedCertification(CERTIFICATION_ID);
     }
 
+    /*
+     * 데모데이 시현을 위해 동일 품목 일일 중복 제한을 비활성화함 (2026-08-21)
+     * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+     * 기존 재촬영 PASS 완료 직전 동일 가이드 정책 거절 테스트를 원형 보존한다.
+     *
     @Test
     void returnsNonRetryableDuplicateWithoutSavingJudgementOrPoint() {
         Certification certification = processingRetryCertification();
@@ -279,6 +279,7 @@ class CertificationRetryTransactionServiceTest {
         verify(pointService, never()).earnPoint(any(), any(), any(), any());
         verify(contributionService, never()).recordPassedCertification(any());
     }
+    */
 
     @Test
     void allowsRetryPassWithoutRecheckingDailyLimit() {
@@ -288,11 +289,6 @@ class CertificationRetryTransactionServiceTest {
                 CERTIFICATION_ID,
                 USER_ID
         )).thenReturn(Optional.of(certification));
-        when(certificationRepository
-                .existsByUserIdAndRecycleGuideIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
-                        any(), any(), any(), any(), any()
-                )).thenReturn(false);
-
         CertificationCreateResponseDTO response = service.completeJudgement(
                 retryContext(),
                 passResult()

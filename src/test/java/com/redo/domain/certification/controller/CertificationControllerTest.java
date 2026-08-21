@@ -101,6 +101,7 @@ class CertificationControllerTest {
                 .andExpect(jsonPath("$.result.canCertify").value(true))
                 .andExpect(jsonPath("$.result.restriction.type").value("NONE"))
                 .andExpect(jsonPath("$.result.policy.cooldownSeconds").value(0))
+                .andExpect(jsonPath("$.result.policy.sameGuideDailyLimit").value(100))
                 .andExpect(jsonPath("$.result.policy.cooldownEnabled").doesNotExist())
                 .andExpect(jsonPath("$.result.rewardPolicy.generalCertificationPoint").value(50))
                 .andExpect(jsonPath("$.result.rewardPolicy.afterSearchCertificationPoint").value(100))
@@ -430,7 +431,7 @@ class CertificationControllerTest {
                         null,
                         null
                 ),
-                new CertificationHomeResponseDTO.PolicyDTO(0, 1, true),
+                new CertificationHomeResponseDTO.PolicyDTO(0, 100, true),
                 new CertificationHomeResponseDTO.RewardPolicyDTO(50, 100)
         );
     }

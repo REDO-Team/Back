@@ -48,7 +48,7 @@ class CertificationHomeServiceTest {
         assertThat(response.canCertify()).isTrue();
         assertThat(response.restriction().type()).isEqualTo(CertificationRestrictionType.NONE);
         assertThat(response.policy().cooldownSeconds()).isZero();
-        assertThat(response.policy().sameGuideDailyLimit()).isEqualTo(1);
+        assertThat(response.policy().sameGuideDailyLimit()).isEqualTo(100);
         assertThat(response.policy().liveCaptureOnly()).isTrue();
         assertThat(response.rewardPolicy().generalCertificationPoint())
                 .isEqualTo(CertificationSource.GENERAL.rewardPoint())

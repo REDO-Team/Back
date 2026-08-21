@@ -37,7 +37,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -59,9 +58,11 @@ public class CertificationTransactionService {
             "certification:";
     private static final String CERTIFICATION_EARN_IDEMPOTENCY_KEY_SUFFIX =
             ":earn";
-    private static final String DUPLICATE_REASON = "오늘 이미 인증한 동일 가이드입니다.";
-    private static final List<String> DUPLICATE_RETRY_GUIDE =
-            List.of("오늘 인증하지 않은 다른 품목을 촬영해 주세요.");
+    // 데모데이 시현을 위해 동일 품목 일일 중복 제한을 비활성화함 (2026-08-21)
+    // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+    // private static final String DUPLICATE_REASON = "오늘 이미 인증한 동일 가이드입니다.";
+    // private static final List<String> DUPLICATE_RETRY_GUIDE =
+    //         List.of("오늘 인증하지 않은 다른 품목을 촬영해 주세요.");
 
     private final UserRepository userRepository;
     private final CertificationRepository certificationRepository;
@@ -199,6 +200,10 @@ public class CertificationTransactionService {
             recycleGuide = requireCertificationGuide(certification);
         }
 
+        /*
+         * 데모데이 시현을 위해 동일 품목 일일 중복 제한을 비활성화함 (2026-08-21)
+         * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+         *
         LocalDateTime now = now();
         LocalDate today = now.toLocalDate();
         boolean duplicate = certificationRepository
@@ -216,6 +221,7 @@ public class CertificationTransactionService {
                     recycleGuide
             ));
         }
+        */
 
         ActiveRecycleJudgementTemplate template =
                 requireActiveTemplate(recycleGuide.getId());
@@ -471,9 +477,14 @@ public class CertificationTransactionService {
             Certification certification,
             LocalDateTime judgedAt
     ) {
+        /*
+         * 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
+         * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+         *
         LocalDate today = judgedAt.toLocalDate();
         LocalDateTime startAt = today.atStartOfDay();
         LocalDateTime endAt = today.plusDays(1).atStartOfDay();
+         */
         // 데모데이 시현을 위해 일일 3회/5분 제한을 비활성화함 (2026-08-20)
         // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
         // long usedCount = certificationRepository
@@ -490,6 +501,10 @@ public class CertificationTransactionService {
         //     );
         // }
 
+        /*
+         * 데모데이 시현을 위해 동일 품목 일일 중복 제한을 비활성화함 (2026-08-21)
+         * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+         *
         RecycleGuide recycleGuide = requireCertificationGuide(certification);
         boolean duplicate = certificationRepository
                 .existsByUserIdAndRecycleGuideIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
@@ -505,8 +520,14 @@ public class CertificationTransactionService {
 
         certification.rejectDuplicateGuide(judgedAt);
         return toDuplicateResponse(certification, recycleGuide);
+        */
+        return null;
     }
 
+    /*
+     * 데모데이 시현을 위해 동일 품목 일일 중복 제한을 비활성화함 (2026-08-21)
+     * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+     *
     private CertificationCreateResponseDTO toDuplicateResponse(
             Certification certification,
             RecycleGuide recycleGuide
@@ -528,6 +549,7 @@ public class CertificationTransactionService {
                 certification.getJudgedAt()
         );
     }
+    */
 
     private LocalDateTime now() {
         return LocalDateTime.ofInstant(clock.instant(), SEOUL_ZONE);
