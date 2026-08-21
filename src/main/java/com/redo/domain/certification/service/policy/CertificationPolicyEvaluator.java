@@ -22,7 +22,10 @@ public class CertificationPolicyEvaluator {
     // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
     // public static final int DAILY_LIMIT = 3;
     // public static final long COOLDOWN_SECONDS = 300;
-    public static final int SAME_GUIDE_DAILY_LIMIT = 1;
+    // 데모데이 시현을 위해 동일 품목 일일 중복 제한을 비활성화함 (2026-08-21)
+    // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+    // public static final int SAME_GUIDE_DAILY_LIMIT = 1;
+    public static final int SAME_GUIDE_DAILY_LIMIT = 100;
     public static final boolean LIVE_CAPTURE_ONLY = true;
 
     private final CertificationRepository certificationRepository;

@@ -118,6 +118,11 @@ class GeminiCertificationJudgementProcessorTest {
         assertThat(resultCaptor.getValue().rawResponseJson()).contains("\"PASS\"");
     }
 
+    /*
+     * 데모데이 시현을 위해 동일 품목 일일 중복 제한을 비활성화함 (2026-08-21)
+     * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+     * 기존 동일 가이드 정책 거절 시 Gemini 생략 테스트를 원형 보존한다.
+     *
     @Test
     void skipsGeminiJudgementWhenGuideWasAlreadyPassedToday() {
         CertificationJudgementCommand command =
@@ -146,6 +151,7 @@ class GeminiCertificationJudgementProcessorTest {
         verify(geminiClient, never()).generate(any());
         verify(transactionService, never()).completeJudgement(any(), any());
     }
+    */
 
     @Test
     void retryGeneralUsesExistingGuideWithoutClassification() {

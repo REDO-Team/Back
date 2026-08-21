@@ -44,13 +44,15 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
             CertificationStatus status
     );
 
-    boolean existsByUserIdAndRecycleGuideIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
-            Long userId,
-            Long recycleGuideId,
-            CertificationStatus status,
-            LocalDateTime startAt,
-            LocalDateTime endAt
-    );
+    // 데모데이 시현을 위해 동일 품목 일일 중복 제한을 비활성화함 (2026-08-21)
+    // 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+    // boolean existsByUserIdAndRecycleGuideIdAndStatusAndJudgedAtGreaterThanEqualAndJudgedAtLessThan(
+    //         Long userId,
+    //         Long recycleGuideId,
+    //         CertificationStatus status,
+    //         LocalDateTime startAt,
+    //         LocalDateTime endAt
+    // );
 
     Optional<Certification> findTopByUserIdAndStatusInOrderByJudgedAtDesc(
             Long userId,

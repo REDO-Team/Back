@@ -165,6 +165,11 @@ class CertificationTransactionServiceTest {
     }
     */
 
+    /*
+     * 데모데이 시현을 위해 동일 품목 일일 중복 제한을 비활성화함 (2026-08-21)
+     * 데모데이 종료 후 정책 복구 여부를 확인한 뒤 재활성화할 것
+     * 기존 동일 가이드 정책 거절 테스트를 원형 보존한다.
+     *
     @Test
     void completesDuplicateGuideWithoutAiJudgement() {
         Certification certification = Certification.create(
@@ -205,6 +210,38 @@ class CertificationTransactionServiceTest {
         verify(aiJudgementRepository, never()).save(any());
         verify(pointService, never()).earnPoint(any(), any(), any(), any());
         verify(contributionService, never()).recordPassedCertification(any());
+    }
+    */
+
+    @Test
+    void allowsSameGuideAndPreparesVlmJudgement() {
+        Certification certification = Certification.create(
+                user,
+                null,
+                "certifications/42/image.jpg",
+                CertificationSource.GENERAL
+        );
+        ReflectionTestUtils.setField(certification, "id", 102L);
+        CertificationJudgementCommand command = new CertificationJudgementCommand(
+                102L,
+                USER_ID,
+                CertificationSource.GENERAL,
+                certification.getImageKey(),
+                null
+        );
+        when(certificationRepository.findByIdAndUserIdForUpdate(102L, USER_ID))
+                .thenReturn(Optional.of(certification));
+        when(recycleGuideRepository.findById(GUIDE_ID)).thenReturn(Optional.of(guide));
+        when(templateProvider.findActiveByRecycleGuideId(GUIDE_ID))
+                .thenReturn(Optional.of(template()));
+
+        CertificationJudgementPreparation preparation =
+                service.prepareJudgement(command, GUIDE_ID);
+
+        assertThat(preparation.isCompleted()).isFalse();
+        assertThat(preparation.context().recycleGuideId()).isEqualTo(GUIDE_ID);
+        assertThat(certification.getStatus()).isEqualTo(CertificationStatus.PROCESSING);
+        verify(templateProvider).findActiveByRecycleGuideId(GUIDE_ID);
     }
 
     @Test
