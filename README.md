@@ -470,11 +470,12 @@ cp k6/.env.example k6/.env
 
 ## 🔄 CI/CD
 
-`develop` 브랜치에 코드가 반영되면 GitHub Actions를 통해 자동 배포가 진행됩니다.
+`develop` 브랜치에 코드가 반영되면 GitHub Actions가 Docker 이미지를 빌드해 검증하고,
+`main` 브랜치에 코드가 반영되면 운영 서버에 자동 배포합니다.
 
-1. GitHub Actions가 Docker 이미지를 빌드
+1. `develop`과 `main`의 Docker 이미지를 브랜치별 태그로 빌드
 2. 이미지를 GitHub Container Registry에 Push
-3. Self-hosted Runner가 배포 서버의 소스를 갱신
+3. `main` 반영 시 Self-hosted Runner가 배포 서버의 소스를 갱신
 4. Docker Compose가 새 이미지를 Pull
 5. 애플리케이션과 Redis 등 운영 컨테이너 재기동
 6. Swagger UI 응답을 통한 배포 상태 확인
