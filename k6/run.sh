@@ -18,7 +18,9 @@ fi
 
 shift
 
-SCENARIO_NAME="$(basename "${SCENARIO_PATH}" .js)"
+SCENARIO_NAME="${SCENARIO_PATH#scenarios/}"
+SCENARIO_NAME="${SCENARIO_NAME%.js}"
+SCENARIO_NAME="${SCENARIO_NAME//\//-}"
 if [[ -f "${K6_DIR}/.env" ]]; then
   if [[ -z "${TEST_ID:-}" ]]; then
     TEST_ID_LINE="$(grep -E '^TEST_ID=' "${K6_DIR}/.env" | tail -n 1 || true)"
